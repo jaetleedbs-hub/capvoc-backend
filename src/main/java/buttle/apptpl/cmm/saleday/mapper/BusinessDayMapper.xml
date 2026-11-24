@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.saleday.mapper.BusinessDayMapper">
+
+    <!-- 영업일 조회 (페이징) -->
+    <select id="selectBusinessDayList" resultType="buttle.apptpl.cmm.saleday.vo.SYS5030002Vo">
+        SELECT 
+            a.sale_day,               /* 영업 일 */
+            a.ognz_cd,                /* 조직 코드 */
+            <!-- (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'OGNZ_CD' AND s.cmmn_cd = a.ognz_cd) AS ognz_cd_nm,  /* 조직 코드 명 */ -->
+            a.hldy_se_cd,             /* 휴일 구분 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'HLDY_SE_CD' AND s.cmmn_cd = a.hldy_se_cd) AS hldy_se_cd_nm,  /* 휴일 구분 코드 명 */
+            a.wday_se_cd,             /* 요일 구분 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'WDAY_SE_CD' AND s.cmmn_cd = a.wday_se_cd) AS wday_se_cd_nm,  /* 요일 구분 코드 명 */
+            a.rmrk                    /* 비고 */
+        FROM cdm_own.cmpt_sale_day a
+        WHERE 1=1
+        <if test="fromSaleDay != null and fromSaleDay != ''">
+            AND a.sale_day >= #{fromSaleDay}  /* 시작 영업 일 */
+        </if>
+        <if test="toSaleDay != null and toSaleDay != ''">
+            AND a.sale_day <![CDATA[<=]]> #{toSaleDay}  /* 종료 영업 일 */
+        </if>
+        <if test="hldySeCd != null and hldySeCd != ''">
+            AND a.hldy_se_cd = #{hldySeCd}  /* 휴일 구분 코드 */
+        </if>
+        order by a.sale_day asc
+    </select>
+
+    <!-- 영업일 조회 -->
+    <select id="selectBusinessDay" resultType="Integer">
+        SELECT count(*) as cnt
+        FROM cdm_own.cmpt_sale_day a
+        WHERE 1=1
+        <if test="fromSaleDay != null and fromSaleDay != ''">
+            AND a.sale_day >= #{fromSaleDay}  /* 시작 영업 일 */
+        </if>
+        <if test="toSaleDay != null and toSaleDay != ''">
+            AND a.sale_day <![CDATA[<=]]> #{toSaleDay}  /* 종료 영업 일 */
+        </if>
+    </select>
+
+
+</mapper> 

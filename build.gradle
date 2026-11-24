@@ -1,0 +1,329 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.springframework.boot' version '3.4.1' // Spring Boot 3.4.1 
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'maven-publish' // 
+}
+
+group = 'buttle'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17) // OpenJDK 17 
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    configureEach {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
+}
+
+repositories {
+    // 공개 중앙 저장소(인터넷망). corebase 를 뺀 모든 의존성을 여기서 받는다.
+    // corebase 는 사내 Nexus(내부망 전용) 대신 backend/libs 의 jar 를 직접 참조한다 — 아래 dependencies.
+    mavenCentral()
+}
+
+dependencies {
+    // 공통 프레임워크 corebase
+    // 2.1.0 — 1.0.0 에는 W2-1(AES-GCM·blind index·접두어 분기 decrypt)이 없어,
+    // W2-6(컬럼 GCM 재암호화) 시행 시 admin 이 복호할 수 없는 상태였다(N-35).
+    // 2.1.1 — N-33: 미인증 응답 구분(데이터 요청 401 / 화면 이동 리다이렉트).
+    // 2.1.20 — W3-1: 개인정보 등급(PiiGrade). AdminPiiAccessPolicy 가 STAFF 등급을 구분하려면 필요하다.
+    //   admin 은 계정·조직 관리가 본래 목적이라, 전면 마스킹 시 임직원 이름까지 가리면 업무가 성립하지 않는다.
+    // 2.1.22 — W3-1: 열람 관문 권한을 표시 권한과 <별도 축>으로(canReveal) + 열람 사유.
+    //   admin 은 고객 등급을 항상 가리므로, 축이 하나면 <가려진 사람이 열지도 못해> 관문이 성립하지 않는다.
+    implementation files('libs/chatcall-corebase-2.1.37.jar')
+
+    // ★ corebase 의 전이 의존성 — jar 를 files() 로 걸면 pom 이 따라오지 않아 Gradle 이 이것들을 모른다.
+    //   corebase 2.1.37 pom 에 있고 위·아래에 따로 선언되지 않은 것만 옮겨 적었다(pom 과 같은 범위·버전).
+    //   pom 의 runtime spring-boot-configuration-processor 는 뺐다 — 컴파일 시 주석처리기라 실행 중엔 쓰이지 않는다.
+    //   corebase 버전을 올리면 그 버전과 함께 게시된 pom(chatcall-corebase-<버전>.pom)과 이 목록을 대조한다.
+    //   jar 안에는 pom 이 들어 있지 않다.
+    implementation 'com.github.jsqlparser:jsqlparser:4.9'
+    implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api' // pom 은 3.0.0 이나 Boot BOM 이 3.0.2 로 올려 쓰던 것 — 그대로 둔다
+    implementation 'org.apache.commons:commons-fileupload2-jakarta-servlet6:2.0.0-M2'
+    implementation 'com.ibm.icu:icu4j:75.1'
+    implementation 'org.bgee.log4jdbc-log4j2:log4jdbc-log4j2-jdbc4.1:1.16'
+    runtimeOnly 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    runtimeOnly 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6:3.1.3.RELEASE'
+    runtimeOnly 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
+    runtimeOnly 'org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1'
+    runtimeOnly 'jakarta.xml.bind:jakarta.xml.bind-api'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Spring Boot Starters 
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // WAR 배포용 - Tomcat을 provided로 설정
+    providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // **MCI 통신을 위한 WebFlux (Reactor Netty 포함) 의존성 추가**
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // 개발 편의 
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // DB 
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql:42.7.4'
+
+    // MyBatis 
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+
+    // Springdoc(OpenAPI) [cite: 7]
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
+
+    // QueryDSL (jakarta 호환) - 주석 처리되어 있었지만, 필요 시 활성화 
+    // implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
+    // implementation 'com.querydsl:querydsl-core:5.1.0'
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api" // 
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api" // 
+
+    // Configuration Processor (application.yml/properties 자동 완성 지원)
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+
+    // annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta" // QueryDSL 사용 시 활성화
+
+    // Jasypt 
+    implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
+
+    // Excel/문서 처리 
+    implementation 'org.apache.poi:poi:5.2.5'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    implementation 'org.jxls:jxls:2.12.0'
+    implementation 'org.jxls:jxls-poi:2.12.0'
+    implementation 'org.apache.pdfbox:pdfbox:2.0.28'
+    implementation 'org.apache.tika:tika-core:2.9.2'
+
+    // 이미지 처리 
+    implementation 'net.coobird:thumbnailator:0.4.20'
+
+    // JWT [cite: 8]
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // HTTP/네트워크 
+    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+    implementation 'org.apache.httpcomponents:httpmime:4.5.14'
+    implementation 'org.apache.httpcomponents:fluent-hc:4.5.14'
+    implementation 'com.konghq:unirest-java:3.14.1'
+    implementation 'com.konghq:unirest-objectmapper-jackson:3.13.6'
+
+    // Commons 계열 
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-text:1.10.0'
+    implementation 'commons-io:commons-io:2.14.0'
+    implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'commons-codec:commons-codec:1.16.0'
+    implementation 'commons-beanutils:commons-beanutils:1.9.4'
+    implementation 'org.apache.commons:commons-pool2:2.11.1'
+
+    // 기타 [cite: 9]
+    implementation 'com.google.guava:guava:32.0.1-android'
+
+    // 로깅 
+    implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
+    
+    // model mapper 
+    implementation 'org.modelmapper:modelmapper:3.2.0'
+
+    // Jackson 
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // JSON 
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+
+    // 테스트 
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Spring Cache and Caffeine 
+    implementation 'com.github.ben-manes.caffeine:caffeine' 
+}
+
+sourceSets.main.resources.srcDirs += ['src/main/java']
+sourceSets.test.resources.srcDirs += ['src/test/java']
+
+tasks.named('test') {
+    useJUnitPlatform {
+        // ★ 실 DB·외부 자원이 있어야 도는 시험은 기본에서 뺀다.
+        //   갓 받은 사람이 `./gradlew test` 를 돌렸을 때 <자기 잘못이 아닌 빨강>을 먼저 보면,
+        //   그 뒤로 시험 결과를 안 믿게 된다. 그것이 시험이 없는 것보다 나쁘다.
+        //
+        //   돌리려면:  ./gradlew integrationTest      (DB 접속이 .env 에 채워져 있어야 한다)
+        excludeTags 'integration'
+    }
+
+    // [.env.example 완전성] 템플릿을 test 태스크의 <입력>으로 선언한다.
+    //  선언하지 않으면 템플릿이 낡아도 Gradle 이 UP-TO-DATE 로 건너뛴다 —
+    //  EnvExampleCompletenessTest 가 <있는데도> 통과로 보이는 상태가 된다(2026-09-04 실측).
+    //  inputs.file 이 아니라 inputs.files — 파일이 없을 때 배선 오류로 모든 시험을 막는 대신
+    //  시험이 자기 메시지로 실패하게 둔다(optional(true) 로는 안 된다).
+    inputs.files(files('.env.example')).withPropertyName('envExample')
+}
+
+// 실 DB 가 있어야 도는 시험만 따로 돌린다. `test` 가 뺀 것들이다.
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    description = '@Tag("integration") 시험만 돌린다. DB 접속이 .env 에 채워져 있어야 한다'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'integration' }
+    systemProperty 'spring.profiles.active', 'local'
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ["-parameters"]
+    // 소스 인코딩을 못박는다. 안 박으면 javac 가 빌드 머신의 플랫폼 기본 문자셋으로 소스를 읽는다 —
+    // 주석이 깨지면 무해하지만 <식별자>가 깨지면 컴파일 오류이거나 이름이 다른 심볼이 된다.
+    options.encoding = 'UTF-8'
+}
+
+bootJar {
+    mainClass = 'buttle.apptpl.AppTemplateApplication'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Spring Boot WAR 설정
+bootWar {
+    mainClass = 'buttle.apptpl.AppTemplateApplication'
+	archiveFileName = "${project.name}.war"
+}
+
+// Jasypt 암호화/복호화 Task
+task('encrypt', type: JavaExec) {
+    group = "Jasypt"
+    description = "Encrypts a value using Jasypt"
+    
+    mainClass = 'buttle.apptpl.common.util.EncryptionTool'
+    classpath = sourceSets.main.runtimeClasspath
+    
+    // 명령행 인자 전달
+    if (project.hasProperty('text')) {
+        args 'encrypt', project.getProperty('text')
+    } else {
+        doFirst {
+            throw new RuntimeException("Please provide a text to encrypt with -Ptext=...")
+        }
+    }
+}
+
+task('decrypt', type: JavaExec) {
+    group = "Jasypt"
+    description = "Decrypts a value using Jasypt"
+    
+    mainClass = 'buttle.apptpl.common.util.EncryptionTool'
+    classpath = sourceSets.main.runtimeClasspath
+    
+    // 명령행 인자 전달
+    if (project.hasProperty('text')) {
+        args 'decrypt', project.getProperty('text')
+    } else {
+        doFirst {
+            throw new RuntimeException("Please provide a text to decrypt with -Ptext=...")
+        }
+    }
+}
+
+// 시드 SQL 에 넣을 초기 비밀번호 해시를 만든다. 계정을 되살릴 때도 쓴다.
+task('bcrypt', type: JavaExec) {
+    group = "Security"
+    description = "비밀번호의 BCrypt 해시를 출력한다. 사용법: -Ptext='<비밀번호>'"
+
+    mainClass = 'buttle.apptpl.common.util.PasswordHashTool'
+    classpath = sourceSets.main.runtimeClasspath
+
+    if (project.hasProperty('text')) {
+        args project.getProperty('text')
+    } else {
+        doFirst { throw new GradleException("사용법: ./gradlew bcrypt -Ptext='<비밀번호>'") }
+    }
+}
+
+// [보안] 값의 <지문>을 만든다 — SecretsStartupValidator.LEAKED_FINGERPRINTS 에 넣을 값이다.
+//  시크릿을 실수로 커밋했다 걷어냈을 때, 새 키로 바꾼 뒤 <옛 값의 지문>을 그 목록에 넣으면
+//  누군가 옛 값을 다시 주입했을 때 기동이 그것을 말해 준다.
+//  ★ 키 원본을 코드에 다시 적지 않기 위한 수단이다. 출력은 지문뿐이고 값은 어디에도 남지 않는다.
+tasks.register('fingerprint') {
+    group = 'Security'
+    description = "값의 SHA-256 앞 8바이트를 hex 로 출력한다. 사용법: -Ptext='<값>'"
+    doLast {
+        if (!project.hasProperty('text')) {
+            throw new GradleException("사용법: ./gradlew fingerprint -Ptext='<값>'")
+        }
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+                .digest(project.getProperty('text').getBytes('UTF-8'))
+        println digest[0..7].collect { String.format('%02x', it) }.join('')
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom.withXml {
+                def dependencyManagementNode = asNode().children().find { it.name() == 'dependencyManagement' }
+                if (dependencyManagementNode) {
+                    asNode().remove(dependencyManagementNode)
+                }
+            }
+        }
+    }
+}
+// [로컬 개발] .env 로더 — bootRun 에 환경변수로 주입한다.
+// 시크릿은 W1-1 이후 ${ENV} 참조라, 로컬에서 매번 export 하지 않도록 .env 로 관리한다.
+// .env 는 .gitignore 대상이며, 필요한 항목은 .env.example 을 참고한다.
+ext.dotenvVars = [:]
+def dotenvFile = file(".env")
+if (dotenvFile.exists()) {
+	dotenvFile.readLines().each { line ->
+		def t = line.trim()
+		if (!t || t.startsWith("#") || !t.contains("=")) return
+		def i = t.indexOf("=")
+		ext.dotenvVars[t.substring(0, i).trim()] = t.substring(i + 1).trim().replaceAll(/^["']|["']$/, "")
+	}
+	logger.lifecycle(".env 로드: ${dotenvVars.size()}개 항목")
+}
+
+bootRun {
+	environment dotenvVars
+}
+
+// [로컬 개발] 통합테스트도 bootRun 과 같은 조건으로 돌린다.
+//  admin 만 이 주입이 빠져 있어 통합테스트가 <이 환경에서 통과한 적이 없었다> —
+//  DB 접속 설정을 못 받아 Spring 컨텍스트가 아예 뜨지 못하고 "jdbcUrl is required" 로 죽었다.
+//  desk·connect 는 같은 자리에 이미 주입이 있다(세 앱의 비대칭 해소).
+//
+//  이 블록은 반드시 위의 .env 로더 <뒤>에 둔다. 파일 앞쪽의 tasks.named('test') 블록에 넣으면
+//  그 시점에는 dotenvVars 가 아직 비어 있어(로더가 아래에 있다) 조용히 빈 값이 주입될 수 있다.
+tasks.named('test') {
+	environment dotenvVars
+	systemProperty 'spring.profiles.active', 'local'
+	systemProperty 'file.encoding', 'UTF-8'
+}

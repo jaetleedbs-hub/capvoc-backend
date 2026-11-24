@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.sup.memo.mapper.MemoMapper">
+
+    <!-- 메모 상세 조회 -->
+    <select id="selectMemo" parameterType="buttle.apptpl.sup.memo.vo.COM2080001Vo" resultType="buttle.apptpl.sup.memo.vo.COM2080002Vo">
+        SELECT
+            a.user_id,         /* 사용자 ID */
+            a.memo_ctgy_sid,   /* 메모 카테고리 시퀀스ID */
+            a.memo_sid,        /* 메모 시퀀스ID */
+            a.memo_ttl_nm,     /* 메모 제목 명 */
+            a.memo_cn,         /* 메모 내용 */
+            a.memo_alrm_yn,    /* 메모 알람 여부 */
+            a.memo_alrm_dt,    /* 메모 알람 일시 */
+            a.sort_sn,         /* 정렬일련번호 */
+            TO_CHAR(a.reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS rgstDttm,   /* 등록일시 */
+            TO_CHAR(a.mdfcn_dt, 'YYYY-MM-DD HH24:MI:SS') AS updtDttm  /* 수정일시 */
+        FROM cdm_own.sup_memo a /* 메모관리 */
+        WHERE 1=1
+            AND a.user_id = #{userId}
+            AND a.memo_ctgy_sid = #{memoCtgySid}
+            AND a.memo_sid = #{memoSid}
+    </select>
+
+    <!-- 메모 목록 조회 -->
+    <select id="selectMemoList" parameterType="string" resultType="buttle.apptpl.sup.memo.dto.COM2080002Dto">
+        SELECT
+            c.user_id AS userId,         /* 사용자 ID */
+            c.memo_ctgy_sid AS memoCtgySid,   /* 메모 카테고리 시퀀스ID */
+            c.memo_sid AS memoSid,        /* 메모 시퀀스ID */
+            c.memo_ttl_nm AS memoTtlNm,     /* 메모 제목 명 */
+            c.memo_cn AS memoCn,         /* 메모 내용 */
+            c.memo_alrm_yn AS memoAlrmYn,    /* 메모 알람 여부 */
+            c.memo_alrm_dt AS memoAlrmDt,    /* 메모 알람 일시 */
+            c.sort_sn AS sortSn,          /* 정렬일련번호 */
+            TO_CHAR(c.reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS rgstDttm,   /* 등록일시 */
+            TO_CHAR(c.mdfcn_dt, 'YYYY-MM-DD HH24:MI:SS') AS updtDttm  /* 수정일시 */
+        FROM cdm_own.sup_memo c /* 메모관리 */
+        WHERE c.user_id = #{userId}
+        ORDER BY c.memo_sid DESC
+    </select>
+
+    <!-- 메모 저장 -->
+    <insert id="insertMemo" parameterType="buttle.apptpl.sup.memo.vo.COM2080002Vo">
+        INSERT INTO cdm_own.sup_memo /* 메모관리 */
+        (
+            user_id,        /* 사용자 ID */
+            memo_ctgy_sid,  /* 메모 카테고리 시퀀스ID */
+            memo_ttl_nm,    /* 메모 제목 명 */
+            memo_cn,        /* 메모 내용 */
+            memo_alrm_yn,   /* 메모 알람 여부 */
+            memo_alrm_dt,   /* 메모 알람 일시 */
+            sort_sn,        /* 정렬일련번호 */
+            rgtr_id,        /* 등록자 ID */
+            reg_dt,         /* 등록 일시 */
+            mdfr_id,        /* 수정자 ID */
+            mdfcn_dt        /* 수정 일시 */
+        )
+        VALUES
+        (
+            #{userId},
+            #{memoCtgySid},
+            #{memoTtlNm},
+            #{memoCn},
+            #{memoAlrmYn},
+            #{memoAlrmDt},
+            #{sortSn},
+            #{userId},
+            CURRENT_TIMESTAMP,
+            #{userId},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 메모 수정 -->
+    <update id="updateMemo" parameterType="buttle.apptpl.sup.memo.vo.COM2080002Vo">
+        UPDATE cdm_own.sup_memo /* 메모관리 */
+        SET
+            memo_ttl_nm = #{memoTtlNm},    /* 메모 제목 명 */
+            memo_cn = #{memoCn},           /* 메모 내용 */
+            memo_alrm_yn = #{memoAlrmYn},  /* 메모 알람 여부 */
+            memo_alrm_dt = #{memoAlrmDt},  /* 메모 알람 일시 */
+            sort_sn = #{sortSn},            /* 정렬일련번호 */
+            mdfcn_dt = CURRENT_TIMESTAMP,
+            mdfr_id = #{userId}
+        WHERE 1=1
+            AND user_id = #{userId}
+            AND memo_ctgy_sid = #{memoCtgySid}
+            AND memo_sid = #{memoSid}
+    </update>
+
+    <!-- 메모 삭제 -->
+    <delete id="deleteMemo" parameterType="buttle.apptpl.sup.memo.vo.COM2080001Vo">
+        DELETE FROM cdm_own.sup_memo /* 메모관리 */
+        WHERE 1=1
+            AND user_id = #{userId}
+            AND memo_ctgy_sid = #{memoCtgySid}
+            AND memo_sid = #{memoSid}
+    </delete>
+
+    <!-- 메모 카테고리 삭제 -->
+    <delete id="deleteMemoCategory" parameterType="buttle.apptpl.sup.memo.vo.COM2080001Vo">
+        DELETE FROM cdm_own.sup_memo_ctgy /* 메모 카테고리 */
+        WHERE 1=1
+            AND user_id = #{userId}
+            AND memo_ctgy_sid = #{memoCtgySid}
+    </delete>
+
+    <!-- 메모 카테고리 조회 -->
+    <select id="selectMemoCategory" parameterType="buttle.apptpl.sup.memo.vo.COM2080001Vo" resultType="buttle.apptpl.sup.memo.vo.COM2080001Vo">
+        SELECT /* MemoMapper.selectMemoCategory - 메모 카테고리 조회 */
+            a.user_id,         /* 사용자 ID */
+            a.memo_ctgy_sid,   /* 메모 카테고리 시퀀스ID */
+            a.memo_ctgy_nm,    /* 메모 카테고리 명 */
+            a.sort_sn          /* 정렬일련번호 */
+        FROM cdm_own.sup_memo_ctgy a /* 메모 카테고리 */
+        WHERE 1=1
+            AND user_id = #{userId}
+    </select>
+
+    <!-- 메모 카테고리 저장 -->
+    <insert id="insertMemoCategory" parameterType="buttle.apptpl.sup.memo.vo.COM2080001Vo">
+        INSERT INTO cdm_own.sup_memo_ctgy /* 메모 카테고리 */
+        (
+            user_id,
+            memo_ctgy_nm,
+            sort_sn,
+            rgtr_id,
+            mdfr_id
+        )
+        VALUES
+        (
+            #{userId},
+            #{memoCtgyNm},
+            #{sortSn},
+            #{userId},
+            #{userId}
+        )
+    </insert>
+
+    <!-- 메모 카테고리 최대 시퀀스 조회 -->
+    <select id="selectMaxCategorySequence" parameterType="string" resultType="java.lang.Integer">
+        SELECT /* MemoMapper.selectMaxCategorySequence - 메모 카테고리 최대 시퀀스 조회 */
+            COALESCE(MAX(c.memo_ctgy_sid), 0) AS maxSequence
+        FROM cdm_own.sup_memo_ctgy c /* 메모 카테고리 */
+        WHERE c.user_id = #{userId}
+    </select>
+
+    <!-- 메모 최대 시퀀스 조회 -->
+    <select id="selectMaxMemoSequence" parameterType="string" resultType="java.lang.Integer">
+        SELECT /* MemoMapper.selectMaxMemoSequence - 메모 최대 시퀀스 조회 */
+            COALESCE(MAX(c.memo_sid), 0) AS maxSequence
+        FROM cdm_own.sup_memo c /* 메모 */
+        WHERE c.user_id = #{userId}
+    </select>
+
+    <!-- 메모 폴더 변경 업데이트 -->
+    <update id="updateMemoFolder">
+        UPDATE cdm_own.sup_memo /* 메모관리 */
+        SET
+            memo_ctgy_sid = #{memo.memoCtgySid}, /* 새로운 폴더 ID */
+            memo_ttl_nm = #{memo.memoTtlNm},     /* 메모 제목 명 */
+            memo_cn = #{memo.memoCn},            /* 메모 내용 */
+            memo_alrm_yn = #{memo.memoAlrmYn},   /* 메모 알람 여부 */
+            memo_alrm_dt = #{memo.memoAlrmDt},   /* 메모 알람 일시 */
+            sort_sn = #{memo.sortSn},            /* 정렬일련번호 */
+            mdfcn_dt = CURRENT_TIMESTAMP,        /* 수정일시 */
+            mdfr_id = #{memo.userId}             /* 수정자 ID */
+        WHERE 1=1
+            AND user_id = #{memo.userId}
+            AND memo_ctgy_sid = #{originalMemoCtgySid}  /* 기존 폴더 ID */
+            AND memo_sid = #{memo.memoSid}
+    </update>
+
+</mapper> 

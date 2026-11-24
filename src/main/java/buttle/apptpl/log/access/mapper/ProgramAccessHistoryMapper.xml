@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.log.access.mapper.ProgramAccessHistoryMapper">
+
+    <!-- 프로그램 접속 이력 조회 -->
+    <select id="selectPgmConnHistList" parameterType="buttle.apptpl.log.access.vo.SYS6040001Vo" resultType="buttle.apptpl.log.access.vo.SYS6040002Vo">
+        <!-- [N-18 되돌림] cdm_own.conn_log를 조회한다.
+             admin 신원은 usr_id 다(회원 mbr_id/lgn_id 아님). 화면 호환을 위해
+             log_id→log_sid 별칭만 유지. (구 N-18 로그는 chatcall_std 에 보존되며 향후 통합 배치가 흡수)
+
+             [PII-4, 2026-08-31] 이름은 로그에 저장하지 않는다. 표시용 이름은 사용자 원장
+             (usr)을 조인해 얻는다 — usr_id 가 단일 PK 라 행이 늘지 않는다. -->
+        SELECT
+            a.log_id AS log_sid,      /* 로그 ID (구 log_sid 자리) */
+            TO_CHAR(a.log_dttm, 'YYYY-MM-DD HH24:MI:SS') AS log_dt,     /* 로그 일시 */
+            u.usr_nm AS user_nm, /* 사용자 이름 — 원장에서 조인 */
+            a.http_mthd_nm AS http_method, /* http 메소드 */
+            a.url_addr,     /* URL 주소 */
+            a.usr_id AS user_id, /* admin 사용자 ID */
+            a.ip_addr       /* IP 주소 */
+        FROM cdm_own.conn_log a /* admin 접속로그 */
+        LEFT JOIN cdm_own.usr u ON u.usr_id = a.usr_id
+        WHERE 1=1
+        <if test="userId != null and userId != ''">
+            AND a.usr_id LIKE '%' || #{userId} || '%'
+        </if>
+        <if test="ipAddr != null and ipAddr != ''">
+            AND a.ip_addr LIKE '%' || #{ipAddr} || '%'
+        </if>
+        <if test="urlAddr != null and urlAddr != ''">
+            AND a.url_addr LIKE '%' || #{urlAddr} || '%'
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND a.log_dttm &gt;= TO_TIMESTAMP(#{startDate} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND a.log_dttm &lt;= TO_TIMESTAMP(#{endDate} || ' 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        ORDER BY a.log_dttm DESC, a.usr_id ASC
+    </select>
+
+</mapper> 

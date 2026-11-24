@@ -1,0 +1,23 @@
+package buttle.apptpl.api.shared.vo;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+
+/**
+ * 문의 유형 조회 응답 VO
+ */
+@SuperBuilder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
+public class InquiryTypeResVo {
+    
+    private String cd;
+    private String cdNm;
+}

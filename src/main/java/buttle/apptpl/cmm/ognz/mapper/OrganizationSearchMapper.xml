@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.ognz.mapper.OrganizationSearchMapper">
+
+    <!-- 조직 조회 -->
+    <select id="selectOrgList" parameterType="buttle.apptpl.cmm.ognz.vo.SYS0020001Vo" resultType="buttle.apptpl.cmm.ognz.vo.SYS0020002Vo">
+        SELECT 
+            a.ognz_cd,          /* 조직 코드 */
+            a.ognz_nm,          /* 조직 명 */
+            a.ognz_lvl,         /* 조직 레벨 */
+            a.up_ognz_cd,       /* 상위 조직 코드 */
+            LPAD ('', level::integer*2, ' ') || a.ognz_path_nm as ognzPathNm,   /* 조직 경로 명 */
+            a.use_yn,           /* 사용 여부 */
+            a.sort_sn           /* 정렬 일련번호 */
+
+        FROM cdm_own.view_ognz a
+        WHERE 1=1
+        <if test="ognzCdOrNm != null and ognzCdOrNm != ''">
+            AND (a.ognz_cd LIKE '%' || #{ognzCdOrNm} || '%' OR a.ognz_nm LIKE '%' || #{ognzCdOrNm} || '%')  /* 조직 코드 또는 명 */
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND a.use_yn = 'Y'  /* 사용 여부 */
+        </if>
+
+        <if test="ognzCd != null and ognzCd != ''">
+            AND a.ognz_cd in (<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.ognzCd" />)
+        </if>
+    </select>
+
+</mapper> 

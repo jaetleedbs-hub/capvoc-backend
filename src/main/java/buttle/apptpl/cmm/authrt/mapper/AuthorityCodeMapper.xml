@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.authrt.mapper.AuthorityCodeMapper">
+
+    <!-- 사용자 권한 코드 조회 -->
+    <select id="selectUserAuthCdList" parameterType="buttle.apptpl.cmm.authrt.vo.SYS3010001Vo" resultType="buttle.apptpl.cmm.authrt.vo.SYS3010002Vo">
+        SELECT 
+            a.auth_cd AS authrt_cd, /* 권한 코드 */
+            a.auth_nm AS authrt_nm, /* 권한 명 */
+            a.auth_dvcd AS authrt_se, /* 권한 구분 */
+            a.ognz_inq_rang_cd,   /* 조직 조회 범위 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'OGNZ_INQ_RANG_CD' AND s.cmmn_cd = a.ognz_inq_rang_cd AND s.lcal_cd = 'ko') AS ognz_inq_rang_cd_nm,  /* 조직 조회 범위 코드 명 */
+            a.base_scrn_menu_id AS bsc_scrn_menu_id, /* 기본 화면 메뉴 ID */
+            (SELECT m.menu_nm FROM cdm_own.menu m WHERE m.menu_id = a.base_scrn_menu_id) AS bsc_scrn_menu_id_nm,  /* 기본 화면 메뉴 명 */
+            a.sort_seq AS sort_sn, /* 정렬일련번호 */
+            a.use_yn,             /* 사용 여부 */
+            TO_CHAR(a.sys_chg_dttm, 'YYYY-MM-DD HH24:MI:SS') AS mdfcn_dt /* 수정 일시 */
+        FROM cdm_own.auth a
+        WHERE 1=1
+        <if test="authrtCdOrNm != null and authrtCdOrNm != ''">
+            AND (a.auth_cd LIKE '%' || #{authrtCdOrNm} || '%' OR a.auth_nm LIKE '%' || #{authrtCdOrNm} || '%')  /* 권한 코드 또는 명 */
+        </if>
+        <if test="ognzInqRangCd != null and ognzInqRangCd != ''">
+            AND a.ognz_inq_rang_cd = #{ognzInqRangCd}  /* 조직 조회 범위 코드 */
+        </if>
+        ORDER BY a.sort_seq, a.auth_cd
+    </select>
+
+    <!-- 사용자 권한 코드 상세 조회 -->
+    <select id="selectUserAuthCdDtl" parameterType="buttle.apptpl.cmm.authrt.vo.SYS3010001Vo" resultType="buttle.apptpl.cmm.authrt.vo.SYS3010002Vo">
+        SELECT 
+            a.auth_cd AS authrt_cd, /* 권한 코드 */
+            a.auth_nm AS authrt_nm, /* 권한 명 */
+            a.auth_dvcd AS authrt_se, /* 권한 구분 */
+            a.ognz_inq_rang_cd,   /* 조직 조회 범위 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'OGNZ_INQ_RANG_CD' AND s.cmmn_cd = a.ognz_inq_rang_cd AND s.lcal_cd = 'ko') AS ognz_inq_rang_cd_nm,  /* 조직 조회 범위 코드 명 */
+            a.base_scrn_menu_id AS bsc_scrn_menu_id, /* 기본 화면 메뉴 ID */
+            (SELECT m.menu_nm FROM cdm_own.menu m WHERE m.menu_id = a.base_scrn_menu_id) AS bsc_scrn_menu_id_nm,  /* 기본 화면 메뉴 명 */
+            a.sort_seq AS sort_sn, /* 정렬일련번호 */
+            a.use_yn,             /* 사용 여부 */
+            TO_CHAR(a.sys_chg_dttm, 'YYYY-MM-DD HH24:MI:SS') AS mdfcn_dt /* 수정 일시 */
+        FROM cdm_own.auth a
+        WHERE a.auth_cd = #{authrtCd}  /* 권한 코드 */
+    </select>
+
+</mapper> 

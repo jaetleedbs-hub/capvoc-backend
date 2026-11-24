@@ -1,0 +1,3 @@
+// ★ 이 이름이 산출물 이름(bootWar → <name>.war)이 된다.
+//   새 프로젝트로 복제했다면 scripts/rename-project.sh 가 여기도 함께 바꾼다.
+rootProject.name = 'capvoc-backend'

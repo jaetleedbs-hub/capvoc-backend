@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+
+    <springProperty scope="context" name="LOG_DIR" source="logging.file.path" defaultValue="/data/framework/logs/admin"/>
+    
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level){red} %clr(${PID:- }){magenta} %clr(---){faint} [%15.15t] %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wex</pattern>
+            <!--
+              ★ 콘솔도 UTF-8 로 쓴다. 아래 파일 어펜더 셋은 처음부터 UTF-8 인데 여기만 빠져 있어,
+                콘솔만 <플랫폼 기본값>으로 떨어졌다 — 한국어 Windows 에서는 CP949 다.
+
+              어디서 값을 하나 — 컨테이너다. 배포본은 stdout 을 Docker 가 수집하므로,
+              인코딩이 어긋나면 `docker logs` 에서 한글 grep 이 0건으로 나온다.
+              그것을 「그런 로그가 없다」로 읽으면 고장을 <일어나지 않은 것>으로 판정하게 된다.
+              규약 §4 의 "로그에 없다를 일어나지 않았다로 읽지 않는다" 가 바로 이 자리다.
+
+              ⛔ 로컬 `gradlew bootRun > run-bootrun.log` 의 깨짐은 이것으로 고쳐지지 않는다.
+                 그 구간은 Gradle 이 자식 출력을 받아 자기 인코딩으로 다시 쓴다 —
+                 gradle.properties·bootRun systemProperty·chcp 65001 모두 효과가 없었다(desk 실측).
+                 로컬에서 앱 로그를 볼 자리는 파일 어펜더가 쓰는 ${LOG_DIR} 다.
+
+              같은 결함이 desk-backend 에도 있었고 먼저 고쳐졌다(d61ee13). chat-server 는 원래 있었다.
+            -->
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/aicc-admin-backend.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/aicc-admin-backend.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/aicc-admin-backend-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/aicc-admin-backend-error.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- [N-12 / W3-3] 개인정보 접근 감사로그 DB 저장 실패 시의 유실 방지 채널.
+         WORM 성격: 시작 시 삭제하지 않고(cleanHistoryOnStart=false) 장기 보존하며,
+         유실을 막기 위해 즉시 flush 한다. 운영은 이 파일이 비어 있어야 정상이다. -->
+    <appender name="AUDIT_FALLBACK_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/aicc-admin-personal-access-audit-fallback.log</file>
+        <immediateFlush>true</immediateFlush>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/aicc-admin-personal-access-audit-fallback.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>365</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+            <cleanHistoryOnStart>false</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 전용 파일 + 상위(콘솔)로도 전파(additivity=true)해 운영이 놓치지 않게 한다. -->
+    <logger name="PERSONAL_ACCESS_AUDIT_FALLBACK" level="error" additivity="true">
+        <appender-ref ref="AUDIT_FALLBACK_FILE"/>
+    </logger>
+
+    <!-- [A4 / 2026-08-17] FILE·ERROR_FILE 을 <root> 에 붙였다.
+         두 appender 는 정의만 돼 있고 <root> 는 STDOUT 만 참조했다 — 즉 <파일 로깅 경로가
+         통째로 죽어 있었다>. 마운트된 /data/framework/logs/admin 에는 감사 fallback 파일
+         0바이트 하나뿐이었다(2026-08-17 실측).
+
+         이게 왜 문제인가. 이 프로젝트는 "AUDIT 으로 기록해 관찰한 뒤 ENFORCE 로 승격" 을
+         반복해 쓴다. admin 의 svc-env.api-auth-policy 는 지금 AUDIT 이고, 그 경고에 쌓인
+         URI 가 곧 <ENFORCE 전에 등록해야 할 매핑 목록>이다. 그런데 기록이 stdout 에만
+         남으니 <컨테이너를 교체하면 목록이 0 부터 다시 시작>한다. 실제로 수집 가능한
+         이력이 30분치뿐이었다.
+
+         ※ desk 는 §10.84 에서 <root> <b>안에</b> springProfile 을 넣어 appender 가 하나도
+           안 붙는 사고가 났다. 여기서는 프로파일 분기를 두지 않는다 — 경로는
+           logging.file.path 로 갈린다(local=./logs, dev=/data/framework/logs/admin). -->
+    <root level="info">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+</configuration>

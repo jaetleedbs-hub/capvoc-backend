@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.common.polling.mapper.PollingMapper">
+
+    <!-- 미확인 공지 건수. desk 의 "새 것 있나" 폴링(/api/admin/polling/all)과
+         관리콘솔 알림 배지(/api/common/polling/user-summary)가 <함께> 쓴다.
+         같은 계산을 두 벌 두면 갈라진다 — 배지 배선(§10.107) 때 여기로 합쳤다.
+
+         ⚠ 종전에는 sum(case when ... then 1 else 0 end) 이었다. 대상 게시물이 하나도
+            없으면 SUM 은 0 이 아니라 <NULL> 을 준다. 호출부마다 null 검사를 달아야 하고
+            int 필드에 담으면 NPE 다. COUNT 로 바꿔 같은 값을 null 없이 준다
+            (기존 desk 호출부의 null 검사는 그대로 둬도 동작한다). -->
+    <select id="selectPollingNotice" parameterType="String" resultType="int">
+        SELECT COUNT(pst.pst_id)
+          FROM cdm_own.cmpt_bbs_pst pst
+    INNER JOIN cdm_own.cmpt_bbs bbs
+            ON bbs.bbs_id = pst.bbs_id
+LEFT OUTER JOIN cdm_own.cmpt_bbs_read_sts sts
+            ON sts.bbs_id = pst.bbs_id
+           AND sts.pst_id = pst.pst_id
+           AND sts.mbr_id = #{memberId}
+         WHERE bbs.bbs_id = 'NOTICE'
+           AND bbs.use_yn = 'Y'
+           AND pst.use_yn = 'Y'
+           AND pst.view_use_yn = 'Y'
+           AND TO_CHAR(NOW(), 'YYYYMMDDHH24MISS')
+               BETWEEN COALESCE(pst.bbs_st_ymd, '19000101') || COALESCE(pst.bbs_st_tm, '000000')
+                   AND COALESCE(pst.bbs_ed_ymd, '21991231') || COALESCE(pst.bbs_ed_tm, '000000')
+           AND sts.mbr_id IS NULL
+    </select>
+
+
+    <!-- admin 폴링 문의 미읽음 조회 여부 조회 -->
+    <select id="selectPollingServiceAnswer" resultType="Integer">
+        select count(1) as is_entry_answer
+          from cdm_own.cmpt_srvc_qstn csq
+         where csq.cmpy_id = #{cmpyId}
+           and csq.rgtr_id = #{memberId}
+           and csq.srvc_ans_dt is not null <!-- 답변이 있고 -->
+           and csq.srvc_qstn_rcpt_yn = 'Y'
+           and csq.rgtr_ans_read_dt is null <!-- 답변 읽지 않은 경우 -->
+    </select>
+
+
+    <!-- admin 폴링 어드민 알림 제목/내용 정보 조회 -->
+    <select id="selectUmsSedngInfo" resultType="Integer">
+          select count(1) as is_entry_ums
+            from cdm_own.cmpt_ums_sedng_info sndng
+      inner join cdm_own.cmpt_ums_rcvr rcvr
+              on sndng.ums_id = rcvr.ums_id
+           where rcvr.mbr_id = #{memberId}
+             and rcvr.send_rslt_cd = '0000'
+    </select>
+
+
+
+</mapper>

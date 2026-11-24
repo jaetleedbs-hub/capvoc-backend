@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.log.userchange.mapper.UserChangeHistoryMapper">
+
+    <select id="selectUserChgHistList" parameterType="buttle.apptpl.log.userchange.vo.SYS6030001Vo" resultType="buttle.apptpl.log.userchange.vo.SYS6030002Vo">
+        SELECT 
+            a.usr_id AS user_id, /* 사용자 ID */
+            b.usr_nm AS user_nm, /* 사용자 이름 */
+            TO_CHAR(a.chg_dttm, 'YYYYMMDDHH24MISS') AS chg_dt, /* 변경 일시 */
+            c.cmmn_cd_nm as chg_type_nm, /* 변경 유형 */
+            c.cmmn_cd_nm as chg_type_cd_nm, /* 변경 유형 코드 명 */
+            /* 변경 전, 후 명칭 */
+            CASE
+                WHEN a.chg_tpcd = 'OGNZ' THEN (SELECT ognz_nm FROM cdm_own.ognz WHERE ognz_cd = a.chg_bfr_info_cntn)
+                WHEN a.chg_tpcd = 'AUTHRT' THEN (SELECT auth_nm FROM cdm_own.auth WHERE auth_cd = a.chg_bfr_info_cntn)
+                ELSE NULL
+            END AS chg_bfr_info_nm,
+            CASE
+                WHEN a.chg_tpcd = 'OGNZ' THEN (SELECT ognz_nm FROM cdm_own.ognz WHERE ognz_cd = a.chg_aft_info_cntn)
+                WHEN a.chg_tpcd = 'AUTHRT' THEN (SELECT auth_nm FROM cdm_own.auth WHERE auth_cd = a.chg_aft_info_cntn)
+                ELSE NULL
+            END AS chg_aftr_info_nm,
+            /* 처리자 이름 */
+            d.usr_nm AS prcr_nm /* 처리자 이름 */
+        FROM cdm_own.usr_hist a /* 사용자 변경이력 */
+        LEFT JOIN cdm_own.usr b /* 사용자 */ ON a.usr_id = b.usr_id
+        LEFT JOIN cdm_own.cmmn_cd c /* 공통코드 */ ON c.cd_grop_cd = 'CHG_TYPE_CD' AND c.cmmn_cd = a.chg_tpcd AND c.lcal_cd = 'ko'
+        LEFT JOIN cdm_own.usr d /* 사용자 */ ON d.usr_id = a.prcs_usr_id
+        WHERE 1=1
+        <if test="userId != null and userId != ''">
+            AND a.usr_id = #{userId}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND a.chg_dttm &gt;= TO_TIMESTAMP(#{startDate} || '000000', 'YYYYMMDDHH24MISS')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND a.chg_dttm &lt;= TO_TIMESTAMP(#{endDate} || '235959', 'YYYYMMDDHH24MISS')
+        </if>
+        <if test="chgTypeCd != null and chgTypeCd != ''">
+            AND a.chg_tpcd = #{chgTypeCd}
+        </if>
+        <if test="ognzCd != null and ognzCd != ''">
+            AND b.ognz_cd in (<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.ognzCd" />)
+        </if>
+        ORDER BY a.chg_dttm DESC, a.usr_id ASC
+    </select>
+
+</mapper> 

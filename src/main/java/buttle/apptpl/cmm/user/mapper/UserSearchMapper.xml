@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.user.mapper.UserSearchMapper">
+
+    <!-- 사용자 소속 조직 조회 -->
+    <select id="selectUserBelongOrgList" parameterType="buttle.apptpl.cmm.user.vo.SYS0040001Vo" resultType="buttle.apptpl.cmm.user.vo.SYS0040002Vo">
+        SELECT 
+            a.ognz_cd,           /* 조직 코드 */
+            a.ognz_nm,           /* 조직 명 */
+            a.ognz_lvl,          /* 조직 레벨 */
+            a.anct_ognz_cd AS up_ognz_cd, /* 상위 조직 코드 */
+            a.sort_seq AS sort_sn /* 정렬 일련번호 */
+        FROM cdm_own.ognz a
+        WHERE 1=1
+        <if test="ognzCdOrNm != null and ognzCdOrNm != ''">
+            AND (a.ognz_cd LIKE '%' || #{ognzCdOrNm} || '%' OR a.ognz_nm LIKE '%' || #{ognzCdOrNm} || '%')  /* 조직 코드 또는 명 */
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND a.use_yn = #{useYn}  /* 사용 여부 */
+        </if>
+        ORDER BY a.ognz_lvl, a.sort_seq, a.ognz_cd
+    </select>
+
+    <!-- 조직별 사용자 정보 조회 -->
+    <select id="selectOrgTypeUserInfoList" parameterType="buttle.apptpl.cmm.user.vo.SYS0040001Vo" resultType="buttle.apptpl.cmm.user.vo.SYS0040003Vo">
+        SELECT 
+            a.usr_id AS user_id,    /* 사용자 ID */
+            a.usr_nm AS user_nm,    /* 사용자 명 */
+            a.pswd,                 /* 비밀번호 */
+            a.ognz_cd,              /* 조직 코드 */
+            b.ognz_path_nm,         /* 조직 경로 명 */
+            a.auth_cd AS authrt_cd, /* 권한 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'AUTHRT_CD' AND s.cmmn_cd = a.auth_cd AND s.lcal_cd = 'ko') AS authrt_cd_nm,  /* 권한 코드 명 */
+            a.lgn_yn,               /* 로그인 여부 */
+            a.lgn_try_rcn AS lgn_try_cnt, /* 로그인 시도 수 */
+            a.lgn_ip,               /* 로그인 IP */
+            TO_CHAR(a.pswd_chg_dttm, 'YYYYMMDDHH24MISS') AS pswd_chg_dt, /* 비밀번호 변경일시 */
+            a.usr_tpcd AS user_type_cd, /* 사용자 유형 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'USER_TYPE_CD' AND s.cmmn_cd = a.usr_tpcd AND s.lcal_cd = 'ko') AS user_type_cd_nm,  /* 사용자 유형 코드 명 */
+            TO_CHAR(a.entr_dt, 'YYYYMMDD') AS jncmp_ymd, /* 입사 일자 */
+            TO_CHAR(a.rtir_dt, 'YYYYMMDD') AS rsgntn_ymd, /* 퇴사 일자 */
+            a.home_tel_no,          /* 자택 전화 번호 */
+            a.mbl_tel_no,           /* 휴대 전화 번호 */
+            a.eml_addr,             /* 이메일 주소 */
+            a.usr_phto AS user_photo, /* 사용자 사진 */
+            a.use_yn,               /* 사용 여부 */
+            a.cti_use_yn,           /* CTI 사용여부 */
+            a.cti_auto_lgn_yn,      /* CTI 자동 로그인 여부 */
+            a.cti_agnt_id AS cti_id, /* CTI ID */
+            a.cnsl_task_dvcd AS dscsn_task_se_cd, /* 상담 업무 구분 코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'DSCSN_TASK_SE_CD' AND s.cmmn_cd = a.cnsl_task_dvcd AND s.lcal_cd = 'ko') AS dscsn_task_se_cd_nm  /* 상담 업무 구분 코드 명 */
+        FROM cdm_own.usr a
+        LEFT JOIN cdm_own.view_ognz b ON a.ognz_cd = b.ognz_cd
+        WHERE 1=1
+        <if test="userIdOrNm != null and userIdOrNm != ''">
+            AND (a.usr_id LIKE '%' || #{userIdOrNm} || '%' OR a.usr_nm LIKE '%' || #{userIdOrNm} || '%')  /* 사용자 ID 또는 명 */
+        </if>
+        <if test="ognzCd != null and ognzCd != ''">
+            AND a.ognz_cd in (<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.ognzCd" />)
+        </if>
+        <if test="userId != null and userId != ''">
+            AND a.usr_id = #{userId}
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND a.use_yn = #{useYn}  /* 사용 여부 */
+        </if>
+        <if test="leaveRsgntnIncl != null and leaveRsgntnIncl != ''">
+            AND a.rtir_dt IS NULL  /* 퇴사자 제외 */
+        </if>
+        ORDER BY b.sort_sn, a.usr_nm, a.usr_id
+    </select>
+
+</mapper> 

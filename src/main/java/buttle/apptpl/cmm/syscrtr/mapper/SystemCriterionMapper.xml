@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.syscrtr.mapper.SystemCriterionMapper">
+
+    <!-- 기준 정보 조회 -->
+    <select id="selectBaseInfoList" parameterType="buttle.apptpl.cmm.syscrtr.vo.SYS5010001Vo" resultType="buttle.apptpl.cmm.syscrtr.vo.SYS5010002Vo">
+        SELECT 
+            a.sys_crtr_cd,        /* 시스템 기준 코드 */
+            a.sys_crtr_cd_nm,     /* 시스템 기준 코드명 */
+            a.sys_crtr_cd_vlu AS sys_crtr_cd_vl, /* 시스템 기준 코드 값 */
+            a.sys_crtr_tpcd AS sys_crtr_type_cd, /* 시스템 기준 유형 코드 */
+            a.sys_crtr_rmrk AS rmrk_cn, /* 비고 내용 */
+            a.use_yn              /* 사용 여부 */
+        FROM cdm_own.sys_crtr_info a
+        WHERE 1=1
+        <if test="sysCrtrCdOrNm != null and sysCrtrCdOrNm != ''">
+            AND (a.sys_crtr_cd_nm LIKE '%' || #{sysCrtrCdOrNm} || '%' OR a.sys_crtr_cd LIKE '%' || #{sysCrtrCdOrNm} || '%')  /* 시스템 기준 코드 또는 명 */
+        </if>
+        <if test="sysCrtrTypeCd != null and sysCrtrTypeCd != ''">
+            AND a.sys_crtr_tpcd = #{sysCrtrTypeCd}  /* 시스템 기준 유형 코드 */
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND a.use_yn = #{useYn}  /* 사용 여부 */
+        </if>
+        ORDER BY a.sys_crtr_cd
+    </select>
+
+    <!-- 기준 정보 상세 조회 -->
+    <select id="selectBaseInfoDetail" parameterType="buttle.apptpl.cmm.syscrtr.vo.SYS5010001Vo" resultType="buttle.apptpl.cmm.syscrtr.vo.SYS5010002Vo">
+        SELECT 
+            a.sys_crtr_cd,        /* 시스템 기준 코드 */
+            a.sys_crtr_cd_nm,     /* 시스템 기준 코드명 */
+            a.sys_crtr_cd_vlu AS sys_crtr_cd_vl, /* 시스템 기준 코드 값 */
+            a.sys_crtr_tpcd AS sys_crtr_type_cd, /* 시스템 기준 유형 코드 */
+            a.sys_crtr_rmrk AS rmrk_cn, /* 비고 내용 */
+            a.use_yn              /* 사용 여부 */
+        FROM cdm_own.sys_crtr_info a
+        WHERE a.sys_crtr_cd = #{sysCrtrCd}  /* 시스템 기준 코드 */
+    </select>
+
+</mapper> 

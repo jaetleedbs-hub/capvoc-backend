@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.board.faq.mapper.FaqMapper">
+
+    <!-- FAQ 목록조회 -->
+    <select id="selectFaqList" parameterType="buttle.apptpl.api.shared.vo.FaqSearchReqVo" resultType="buttle.apptpl.api.shared.vo.FaqListResVo">
+        SELECT
+            a.bbs_id,                                   /* 게시판ID */
+            b.pst_id,                                   /* 게시물ID */
+            b.bbs_type_cd AS category_cd,               /* 분류코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'FAQ_CLSF_CD' AND s.cmmn_cd = b.bbs_type_cd AND s.lcal_cd = 'ko') AS category_nm,  /* 분류명 */
+            b.ttl AS question,                          /* 질문 */
+            b.ntc_yn AS display_yn,                     /* 노출여부 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'YN_CD' AND s.cmmn_cd = b.ntc_yn AND s.lcal_cd = 'ko') AS display_yn_nm,  /* 노출여부명 */
+            TO_CHAR(b.reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS reg_dt,  /* 등록일 */
+            b.rgtr_id,                                  /* 등록자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = b.rgtr_id) AS rgtr_id_nm,   /* 등록자명 */
+            COALESCE(b.inq_cnt, 0) AS viewCount                    /* 조회수 */
+        FROM cdm_own.cmpt_bbs a  /* 게시판 */
+        INNER JOIN cdm_own.cmpt_bbs_pst b  /* 게시물 */
+            ON a.bbs_id = b.bbs_id
+        WHERE 1=1
+            AND a.bbs_id = 'FAQ'
+            <if test="categoryCd != null and categoryCd != ''">
+            AND b.bbs_type_cd = #{categoryCd}
+            </if>
+            <if test="displayYn != null and displayYn != ''">
+            AND b.ntc_yn = #{displayYn}
+            </if>
+            <if test="startDate != null and startDate != ''">
+            AND b.reg_dt >= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="endDate != null and endDate != ''">
+            AND b.reg_dt <![CDATA[<=]]> TO_DATE(#{endDate}, 'YYYY-MM-DD') + INTERVAL '1 day' - INTERVAL '1 second'
+            </if>
+            <if test="searchKeyword != null and searchKeyword != ''">
+            AND (b.ttl LIKE '%' || #{searchKeyword} || '%' OR b.pst_cn LIKE '%' || #{searchKeyword} || '%')
+            </if>
+        ORDER BY b.reg_dt DESC
+    </select>
+
+    <!-- FAQ 총 건수 조회 -->
+    <select id="selectFaqListCount" parameterType="buttle.apptpl.api.shared.vo.FaqSearchReqVo" resultType="int">
+        SELECT COUNT(*)
+        FROM cdm_own.cmpt_bbs a
+        INNER JOIN cdm_own.cmpt_bbs_pst b
+            ON a.bbs_id = b.bbs_id
+        WHERE 1=1
+            AND a.bbs_id = 'FAQ'
+            <if test="categoryCd != null and categoryCd != ''">
+            AND b.bbs_type_cd = #{categoryCd}
+            </if>
+            <if test="displayYn != null and displayYn != ''">
+            AND b.ntc_yn = #{displayYn}
+            </if>
+            <if test="startDate != null and startDate != ''">
+            AND b.reg_dt >= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="endDate != null and endDate != ''">
+            AND b.reg_dt <![CDATA[<=]]> TO_DATE(#{endDate}, 'YYYY-MM-DD') + INTERVAL '1 day' - INTERVAL '1 second'
+            </if>
+            <if test="searchKeyword != null and searchKeyword != ''">
+            AND (b.ttl LIKE '%' || #{searchKeyword} || '%' OR b.pst_cn LIKE '%' || #{searchKeyword} || '%')
+            </if>
+    </select>
+
+    <!-- FAQ 상세조회 -->
+    <select id="selectFaqDetail" parameterType="buttle.apptpl.api.shared.vo.FaqDetailReqVo" resultType="buttle.apptpl.api.shared.vo.FaqDetailResVo">
+        SELECT
+            a.bbs_id,           /* 게시판ID */
+            b.pst_id,           /* 게시물ID */
+            b.bbs_type_cd AS category_cd,    /* 분류코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'FAQ_CLSF_CD' AND s.cmmn_cd = b.bbs_type_cd AND s.lcal_cd = 'ko') AS category_nm,  /* 분류명 */
+            b.ttl AS question,  /* 질문 */
+            b.pst_cn AS answer, /* 답변 */
+            b.ntc_yn AS display_yn,    /* 노출여부 */
+            0 AS sort_order,    /* 정렬순서 */
+            TO_CHAR(b.reg_dt, 'YYYY.MM.DD HH24:MI:SS') AS reg_dt,  /* 등록일 */
+            b.rgtr_id,          /* 등록자ID */
+            TO_CHAR(b.mdfcn_dt, 'YYYY.MM.DD HH24:MI:SS') AS upd_dt,  /* 수정일 */
+            b.mdfr_id           /* 수정자ID */
+        FROM cdm_own.cmpt_bbs a  /* 게시판 */
+        INNER JOIN cdm_own.cmpt_bbs_pst b  /* 게시물 */
+            ON a.bbs_id = b.bbs_id
+        WHERE 1=1
+            AND b.pst_id = #{pstId}
+    </select>
+
+    
+    <!-- FAQ 분류 목록 조회 -->
+    <select id="selectFaqCategory" resultType="buttle.apptpl.api.shared.vo.FaqCategoryResVo">
+        SELECT
+            cd,
+            cd_nm AS cdNm
+        FROM cdm_own.cmpt_cmpy_cd
+        WHERE cd_group = 'FAQ_CLSF_CD'
+        order by sort_sn
+    </select>
+
+    <!-- FAQ 저장 (INSERT) -->
+    <insert id="insertFaq" parameterType="buttle.apptpl.api.shared.vo.FaqSaveReqVo">
+        INSERT INTO cdm_own.cmpt_bbs_pst (
+            bbs_id,
+            pst_id,
+            bbs_type_cd,
+            ttl,
+            pst_cn,
+            ntc_yn,
+            inq_cnt,
+            reg_dt,
+            rgtr_id
+        ) VALUES (
+            #{bbsId},
+            'FAQ_' || TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDDHH24MISSMS'),
+            #{categoryCd},
+            #{question},
+            #{answer},
+            #{displayYn},
+            0,
+            CURRENT_TIMESTAMP,
+            #{rgtrId}
+        )
+    </insert>
+
+    <!-- FAQ 저장 (UPDATE) -->
+    <update id="updateFaq" parameterType="buttle.apptpl.api.shared.vo.FaqSaveReqVo">
+        UPDATE cdm_own.cmpt_bbs_pst
+        SET bbs_type_cd = #{categoryCd},
+            ttl = #{question},
+            pst_cn = #{answer},
+            ntc_yn = #{displayYn},
+            mdfcn_dt = CURRENT_TIMESTAMP,
+            mdfr_id = #{mdfrId}
+        WHERE pst_id = #{pstId}
+    </update>
+
+    <!-- FAQ 삭제 (다중) -->
+    <delete id="deleteFaqList" parameterType="buttle.apptpl.api.shared.vo.FaqDeleteReqVo">
+        DELETE FROM cdm_own.cmpt_bbs_pst
+        WHERE pst_id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.pstId}
+        </foreach>
+    </delete>
+
+</mapper>

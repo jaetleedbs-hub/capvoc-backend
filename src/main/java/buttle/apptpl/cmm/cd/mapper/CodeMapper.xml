@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.cd.mapper.CodeMapper">
+
+    <select id="selectSysLCatCdList" parameterType="buttle.apptpl.cmm.cd.vo.SYS5040001Vo" resultType="buttle.apptpl.cmm.cd.vo.SYS5040002Vo">
+        SELECT
+            a.cd_grop_cd AS cd_group,            /* 코드그룹 */
+            a.cd_grop_cd_nm AS cd_group_nm,      /* 코드그룹명 */
+            a.cd_grop_rmrk AS rmrk_cn,           /* 비고내용 */
+            a.use_yn,                            /* 사용여부 */
+            a.cd_pcus_cd AS cd_plcus_cd,         /* 코드사용처코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'CD_PLCUS_CD' AND s.cmmn_cd = a.cd_pcus_cd AND s.lcal_cd = #{locale}) AS cd_plcus_cd_nm, /* 코드사용처코드명 */
+            a.sys_reg_usr_id AS rgtr_id,         /* 등록자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_reg_usr_id) AS rgtr_id_nm, /* 등록자명 */
+            a.sys_reg_dttm AS reg_dt,            /* 등록일시 */
+            a.sys_chg_usr_id AS mdfr_id,         /* 수정자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_chg_usr_id) AS mdfr_id_nm, /* 수정자명 */
+            a.sys_chg_dttm AS mdfcn_dt           /* 수정일시 */
+        FROM
+            cdm_own.cd_grop a /* 코드그룹 */
+        WHERE 1=1
+        <if test="cdGroup != null and !cdGroup.equals('')">
+            AND a.cd_grop_cd LIKE '%' || #{cdGroup} || '%'
+        </if>
+        <if test="cdGroupNm != null and !cdGroupNm.equals('')">
+            AND a.cd_grop_cd_nm LIKE '%' || #{cdGroupNm} || '%'
+        </if>
+        <if test="useYn != null and !useYn.equals('')">
+            AND a.use_yn = #{useYn}
+        </if>
+        <if test="cdPlcusCd != null and !cdPlcusCd.equals('')">
+            AND a.cd_pcus_cd = #{cdPlcusCd}
+        </if>
+        ORDER BY a.cd_grop_cd
+    </select>
+
+    <select id="selectSysLCatCdDtl" parameterType="buttle.apptpl.cmm.cd.vo.SYS5040001Vo" resultType="buttle.apptpl.cmm.cd.vo.SYS5040002Vo">
+        SELECT
+            a.cd_grop_cd AS cd_group,            /* 코드그룹 */
+            a.cd_grop_cd_nm AS cd_group_nm,      /* 코드그룹명 */
+            a.cd_grop_rmrk AS rmrk_cn,           /* 비고내용 */
+            a.use_yn,                            /* 사용여부 */
+            a.cd_pcus_cd AS cd_plcus_cd,         /* 코드사용처코드 */
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'CD_PLCUS_CD' AND s.cmmn_cd = a.cd_pcus_cd AND s.lcal_cd = #{locale}) AS cd_plcus_cd_nm, /* 코드사용처코드명 */
+            a.sys_reg_usr_id AS rgtr_id,         /* 등록자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_reg_usr_id) AS rgtr_id_nm, /* 등록자명 */
+            a.sys_reg_dttm AS reg_dt,            /* 등록일시 */
+            a.sys_chg_usr_id AS mdfr_id,         /* 수정자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_chg_usr_id) AS mdfr_id_nm, /* 수정자명 */
+            a.sys_chg_dttm AS mdfcn_dt           /* 수정일시 */
+        FROM
+            cdm_own.cd_grop a /* 코드그룹 */
+        WHERE
+            a.cd_grop_cd = #{cdGroup}
+    </select>
+
+    <select id="selectSysSCatCdList" parameterType="buttle.apptpl.cmm.cd.vo.SYS5040003Vo" resultType="buttle.apptpl.cmm.cd.vo.SYS5040004Vo">
+        SELECT
+            a.cmmn_cd AS cd,          /* 코드 */
+            a.cd_grop_cd AS cd_group, /* 코드그룹 */
+            a.lcal_cd AS locale,      /* 로케일 */
+            a.cmmn_cd_nm AS cd_nm,    /* 코드명 */
+            a.cd_dvcd AS cd_se,       /* 코드구분 */
+            a.use_yn,      /* 사용여부 */
+            a.sort_seq AS sort_sn,     /* 정렬일련번호 */
+            a.sys_reg_usr_id AS rgtr_id,     /* 등록자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_reg_usr_id) AS rgtr_id_nm, /* 등록자명 */
+            a.sys_reg_dttm AS reg_dt,      /* 등록일시 */
+            a.sys_chg_usr_id AS mdfr_id,     /* 수정자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_chg_usr_id) AS mdfr_id_nm, /* 수정자명 */
+            a.sys_chg_dttm AS mdfcn_dt     /* 수정일시 */
+        FROM
+            cdm_own.cmmn_cd a /* 코드 */
+        WHERE
+            a.cd_grop_cd = #{cdGroup}
+        <if test="cd != null and !cd.equals('')">
+            AND a.cmmn_cd LIKE '%' || #{cd} || '%'
+        </if>
+        <if test="locale != null and !locale.equals('')">
+            AND a.lcal_cd = #{locale}
+        </if>        
+        <if test="cdNm != null and !cdNm.equals('')">
+            AND a.cmmn_cd_nm LIKE '%' || #{cdNm} || '%'
+        </if>
+        <if test="useYn != null and !useYn.equals('')">
+            AND a.use_yn = #{useYn}
+        </if>
+        ORDER BY a.lcal_cd, a.sort_seq
+    </select>
+
+    <select id="selectSysSCatCdDtl" parameterType="buttle.apptpl.cmm.cd.vo.SYS5040003Vo" resultType="buttle.apptpl.cmm.cd.vo.SYS5040004Vo">
+        SELECT
+            a.cmmn_cd AS cd,          /* 코드 */
+            a.cd_grop_cd AS cd_group, /* 코드그룹 */
+            a.lcal_cd AS locale,      /* 로케일 */
+            a.cmmn_cd_nm AS cd_nm,    /* 코드명 */
+            a.cd_dvcd AS cd_se,       /* 코드구분 */
+            a.use_yn,      /* 사용여부 */
+            a.sort_seq AS sort_sn,     /* 정렬일련번호 */
+            a.sys_reg_usr_id AS rgtr_id,     /* 등록자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_reg_usr_id) AS rgtr_id_nm, /* 등록자명 */
+            a.sys_reg_dttm AS reg_dt,      /* 등록일시 */
+            a.sys_chg_usr_id AS mdfr_id,     /* 수정자ID */
+            (SELECT s.usr_nm FROM cdm_own.usr s WHERE s.usr_id = a.sys_chg_usr_id) AS mdfr_id_nm, /* 수정자명 */
+            a.sys_chg_dttm AS mdfcn_dt     /* 수정일시 */
+        FROM
+            cdm_own.cmmn_cd a /* 코드 */
+        WHERE
+            a.cd_grop_cd = #{cdGroup}
+            AND a.cmmn_cd = #{cd}
+        <if test="locale != null and !locale.equals('')">
+            AND a.lcal_cd = #{locale}
+        </if>
+    </select>
+
+    <select id="selectSysSCatCdRefList" parameterType="buttle.apptpl.cmm.cd.vo.SYS5040003Vo" resultType="buttle.apptpl.cmm.cd.vo.SYS5040005Vo">
+        SELECT
+            a.cmmn_cd AS cd,           /* 코드 */
+            a.cd_grop_cd AS cd_group,  /* 코드그룹 */
+            a.lcal_cd AS locale,       /* 로케일 */
+            a.ref_cd AS rfrnc_cd,      /* 참조코드 */
+            a.ref_cd_nm AS rfrnc_nm,   /* 참조명 */
+            a.ref_vlu AS rfrnc_vl      /* 참조값 */
+        FROM
+            cdm_own.ref_cd a /* 참조코드 */
+        WHERE
+            a.cd_grop_cd = #{cdGroup}
+            AND a.cmmn_cd = #{cd}
+        <if test="locale != null and !locale.equals('')">
+            AND a.lcal_cd = #{locale}
+        </if>
+    </select>
+
+</mapper> 

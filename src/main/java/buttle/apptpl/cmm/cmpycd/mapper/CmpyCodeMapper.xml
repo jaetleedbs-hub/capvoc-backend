@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.cmpycd.mapper.CmpyCodeMapper">
+
+    <!-- 코드 그룹 목록조회 -->
+    <select id="selectCodeGroupList" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeGroupSearchReqVo" resultType="buttle.apptpl.api.shared.vo.BO403SCodeGroupListResVo">
+       /*CmpyCodeMapper - selectCodeGroupList*/
+        SELECT 
+            cmpy_type_cd AS cmpyTypeCd,
+            cd_group AS cdGroup,
+            cd_group_nm AS cdGroupNm,
+            rmrk_cn AS rmrkCn,
+            use_yn AS useYn,
+            cd_plcus_cd AS cdPlcusCd,
+            TO_CHAR(reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS regDt
+        FROM cdm_own.cmpt_cmpy_cd_group
+        WHERE cmpy_type_cd = #{cmpyTypeCd}
+        <if test="cdGroup != null and cdGroup != ''">
+            AND (cd_group LIKE '%' || #{cdGroup} || '%') OR (cd_group_nm LIKE '%' || #{cdGroup} || '%')
+        </if>
+       
+        ORDER BY cd_group ASC
+    </select>
+
+    <!-- 코드 목록조회 -->
+    <select id="selectCodeList" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeSearchReqVo" resultType="buttle.apptpl.api.shared.vo.BO403SCodeListResVo">
+        SELECT 
+            c.cmpy_type_cd AS cmpyTypeCd,
+            c.cd_group AS cdGroup,
+            c.cd AS cd,
+            c.locale AS locale,
+            c.cd_nm AS cdNm,
+            c.cd_se AS cdSe,
+            c.use_yn AS useYn,
+            c.sort_sn AS sortSn,
+            TO_CHAR(c.reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS regDt
+        FROM cdm_own.cmpt_cmpy_cd c
+        WHERE c.cmpy_type_cd = #{cmpyTypeCd}
+        AND c.cd_group = #{cdGroup}
+        
+        ORDER BY c.sort_sn ASC, c.cd ASC
+    </select>
+
+    <!-- 코드 그룹 존재 여부 확인 -->
+    <select id="selectCodeGroupExists" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeGroupSaveReqVo" resultType="int">
+        SELECT COUNT(*)
+        FROM cdm_own.cmpt_cmpy_cd_group
+        WHERE cmpy_type_cd = #{cmpyTypeCd}
+        AND cd_group = #{cdGroup}
+    </select>
+
+    <!-- 코드 존재 여부 확인 -->
+    <select id="selectCodeExists" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeSaveReqVo" resultType="int">
+        SELECT COUNT(*)
+        FROM cdm_own.cmpt_cmpy_cd
+        WHERE cmpy_type_cd = #{cmpyTypeCd}
+        AND cd_group = #{cdGroup}
+        AND cd = #{cd}
+        AND locale = #{locale}
+    </select>
+
+    <!-- 코드 그룹 등록 -->
+    <insert id="insertCodeGroup" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeGroupSaveReqVo">
+        INSERT INTO cdm_own.cmpt_cmpy_cd_group (
+            cmpy_type_cd,
+            cd_group,
+            cd_group_nm,
+            rmrk_cn,
+            use_yn,
+            cd_plcus_cd,
+            rgtr_id,
+            reg_dt
+        ) VALUES (
+            #{cmpyTypeCd},
+            #{cdGroup},
+            #{cdGroupNm},
+            #{rmrkCn},
+            COALESCE(#{useYn}, '1'),
+            #{cdPlcusCd},
+            'system',
+            NOW()
+        )
+    </insert>
+
+    <!-- 코드 그룹 수정 -->
+    <update id="updateCodeGroup" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeGroupSaveReqVo">
+        UPDATE cdm_own.cmpt_cmpy_cd_group
+        SET cd_group_nm = #{cdGroupNm},
+            rmrk_cn = #{rmrkCn},
+            use_yn = COALESCE(#{useYn}, '1'),
+            cd_plcus_cd = #{cdPlcusCd},
+            mdfr_id = 'system',
+            mdfcn_dt = NOW()
+        WHERE cmpy_type_cd = #{cmpyTypeCd}
+        AND cd_group = #{cdGroup}
+    </update>
+
+    <!-- 코드 등록 -->
+    <insert id="insertCode" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeSaveReqVo">
+        INSERT INTO cdm_own.cmpt_cmpy_cd (
+            cmpy_type_cd,
+            cd_group,
+            cd,
+            locale,
+            cd_nm,
+            cd_se,
+            use_yn,
+            sort_sn,
+            rgtr_id,
+            reg_dt
+        ) VALUES (
+            #{cmpyTypeCd},
+            #{cdGroup},
+            #{cd},
+            #{locale},
+            #{cdNm},
+            #{cdSe},
+            COALESCE(#{useYn}, '1'),
+            COALESCE(#{sortSn}, 1),
+            'system',
+            NOW()
+        )
+    </insert>
+
+    <!-- 코드 수정 -->
+    <update id="updateCode" parameterType="buttle.apptpl.api.shared.vo.BO403SCodeSaveReqVo">
+        UPDATE cdm_own.cmpt_cmpy_cd
+        SET cd_nm = #{cdNm},
+            cd_se = #{cdSe},
+            use_yn = COALESCE(#{useYn}, '1'),
+            sort_sn = COALESCE(#{sortSn}, 1),
+            mdfr_id = 'system',
+            mdfcn_dt = NOW()
+        WHERE cmpy_type_cd = #{cmpyTypeCd}
+        AND cd_group = #{cdGroup}
+        AND cd = #{cd}
+        AND locale = #{locale}
+    </update>
+
+</mapper>

@@ -1,0 +1,24 @@
+HELP.md
+.gradle
+build/
+bin/
+logs/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# 로컬 개발용 환경변수(시크릿 포함) — 커밋 금지. .env.example 은 커밋한다.
+.env
+
+# 로컬 기동 로그(bootRun 리다이렉트). 개인정보·토큰이 섞일 수 있어 커밋 대상이 아니다.
+#
+# 위 `logs/` 만으로는 «루트에 떨어지는» 리다이렉트 파일이 안 걸린다 — 실제로
+# `run-bootrun.log`·`run-bootrun.err.log` 가 `git status` 에 늘 떠 있었다.
+# 공유 작업트리에서 그것이 해롭다: 남의 미완성 파일과 섞여 <무엇이 내 것인지> 보기 어려워지고,
+# 그 상태로 `git add -A` 하면 남의 것이 딸려 들어간다(2026-09-04 실제 사고).
+# 두 벌인 이유는 사람마다 리다이렉트 이름을 다르게 쓰기 때문이다.
+bootrun-*.log
+run-*.log

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.common.adapter.mapper.CompanyApiMapper">
+
+    <!-- 회원사 API 정보 조회 -->
+    <select id="selectCompanyApiInfo" parameterType="String" resultType="buttle.apptpl.common.adapter.dto.CompanyApiInfo">
+        SELECT
+            c.cmpy_id                             AS companyId,
+            c.cmpy_nm                             AS companyName,
+            c.api_svr_url                         AS apiServerUrl,
+            c.api_auth_token                      AS apiAuthToken,
+            c.api_key                             AS apiKey,
+            c.api_timeout_sec                     AS timeoutSeconds,
+            c.use_yn                              AS useYn,
+            c.cmpy_desc                           AS remark
+        FROM
+            cdm_own.cmpt_cmpy_inf c
+        WHERE
+            c.cmpy_id = #{companyId}
+    </select>
+
+</mapper>

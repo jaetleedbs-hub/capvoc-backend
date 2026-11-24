@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.userip.mapper.UserIpMapper">
+
+    <!-- 사용자 IP별 내선정보 조회 -->
+    <select id="selectUserIpTypeExtInfoList" parameterType="buttle.apptpl.cmm.userip.vo.SYS0080001Vo" resultType="buttle.apptpl.cmm.userip.vo.SYS0080002Vo">
+        SELECT 
+            a.lgn_ip,        /* 로그인 IP */
+            a.ext_no         /* 내선 번호 */
+        FROM cdm_own.cmpt_ip a
+        WHERE 1=1
+        <if test="lgnIp != null and lgnIp != ''">
+            AND a.lgn_ip like '%' || #{lgnIp} || '%'  /* 로그인 IP */
+        </if>
+        <if test="extNo != null and extNo != ''">
+            AND a.ext_no like '%' || #{extNo} || '%'  /* 내선 번호 */
+        </if>
+        ORDER BY a.lgn_ip
+    </select>
+
+    <!-- 사용자 IP별 내선정보 삭제 -->
+    <delete id="deleteUserIpTypeExtInfo" parameterType="string">
+        DELETE FROM cdm_own.cmpt_ip 
+        WHERE lgn_ip = #{lgnIp}
+    </delete>
+
+</mapper> 

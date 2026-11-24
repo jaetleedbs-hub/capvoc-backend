@@ -1,0 +1,36 @@
+# ===============================
+# Jasypt 암호화 설정
+# ===============================
+jasypt:
+  encryptor:
+    # 암호화 키 (환경변수 JASYPT_ENCRYPTOR_PASSWORD로 오버라이드 가능)
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:aicc-default-key-2024}
+    
+    # 암호화 알고리즘
+    algorithm: PBEWITHHMACSHA512ANDAES_256
+    
+    # 키 획득 반복 횟수 (보안 강화)
+    key-obtention-iterations: 1000
+    
+    # 연결 풀 크기
+    pool-size: 1
+    
+    # 공급자 이름
+    provider-name: SunJCE
+    
+    # Salt 생성기 클래스명
+    salt-generator-classname: org.jasypt.salt.RandomSaltGenerator
+    
+    # IV 생성기 클래스명
+    iv-generator-classname: org.jasypt.iv.RandomIvGenerator
+    
+    # 문자열 출력 타입
+    string-output-type: base64
+
+# ===============================
+# 암호화 관련 로깅 설정
+# ===============================
+logging:
+  level:
+    com.ulisesbocchio.jasyptspringboot: INFO
+    org.jasypt: WARN

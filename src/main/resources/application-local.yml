@@ -1,0 +1,91 @@
+#################################
+# 로컬 개발 프로파일
+#
+#  값은 전부 .env 에서 온다(build.gradle 의 로더가 bootRun·test 에 주입).
+#  여기 적힌 `:뒤의 값`은 <.env 가 없을 때의 기본값>이다 — 로컬 PostgreSQL 을
+#  표준 이름으로 띄웠다면 그대로 뜬다.
+#################################
+server:
+  port: ${SERVER_PORT:18030}
+
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 5
+
+#################################
+# DB
+#
+#  ★ 스키마는 currentSchema 하나로 정한다.
+#    소스 어디에도 스키마명을 적지 않았으므로(@Table·매퍼 XML 모두 무한정),
+#    이 값만 바꾸면 다른 스키마로 통째로 옮겨 갈 수 있다.
+#################################
+spring:
+  datasource:
+    main:
+      hikari:
+        maximum-pool-size: 10
+
+        ## PostgreSQL
+        jdbc-url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:25432}/${DB_NAME:apptpl}?currentSchema=${DB_SCHEMA:apptpl}"
+        username: ${DB_USERNAME:postgres}
+        password: ${DB_PASSWORD:evidnet1!}
+
+#################################
+# LOGGING
+#################################
+logging:
+  file:
+    path: ./logs
+  level:
+    root: info
+    jdbc:
+      sqlonly: debug
+      resultset: debug
+    p6spy: info
+    "[com.p6spy]": info
+    buttle.apptpl: debug
+
+#################################
+# SWAGGER — 로컬만 켠다
+#
+#  api-docs 와 swagger-ui 는 <별개 스위치>다. ui 만 켜면 화면이 빈 스펙을 물어 온다.
+#################################
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+#####################################################
+# 서비스 기본설정
+#####################################################
+svc-env:
+  # 로컬은 AUDIT — 프로그램-권한 매핑에 없는 API 도 통과시키고 경고만 남긴다.
+  #  새 화면을 만드는 동안 403 에 막히지 않게 하기 위한 것이다.
+  #  운영은 ENFORCE 로 올린다(docs/development-standard.md §5).
+  api-auth-policy: AUDIT
+
+  login-attempt:
+    allow-duplication-login: true   # 로컬은 중복 로그인 허용(창을 여러 개 띄워 시험한다)
+    duplicate-login-time: 120
+    login-fail-count: 5
+
+  jwt:
+    access-token-validity-in-seconds: 9000    # 150분
+    refresh-token-validity-in-seconds: 90000  # 1500분
+    anonymous-mode: false
+    cookie-secure: false   # 로컬은 http 라 false. 운영 https 는 true
+
+  log:
+    use-personal-log: true
+    use-api-log: true
+
+#####################################################
+# 파일 업로드
+#####################################################
+file:
+  upload:
+    base-path: ${FILE_UPLOAD_PATH:./data/upload}
+    allowed-extensions: "jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,hwp,txt,zip,md,csv"
+    max-size-mb: 100

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.api.common.polling.user.mapper.UserPollingMapper">
+
+    <!--
+        [2026-08-20] 종전에는 질의가 여섯이었다. 부서/나의/미처리 업무 이관 · 콜백 배정 ·
+        통화 예약 다섯은 이전 시스템(CNS*)의 상담 기능이고 ChatCall 에 없다. 그 건수를 띄우던
+        알림 항목이 §10.106 에서 제거돼 화면에 소비자가 0 이라 조회도 걷어냈다.
+        (표 cnsl_trnsf_hstry·cnsl_callbak_hstry·cnsl_rsvt_hstry 는 desk 가 쓰므로 남는다.)
+
+        미확인 공지 건수는 여기 두지 않는다 — desk 의 /api/admin/polling/all 이 쓰는
+        PollingMapper.selectPollingNotice 와 <같은 계산>이라 그쪽으로 합쳤다(§10.108).
+    -->
+
+    <!-- 예약 메모 조회 건수(알림메모 알림일시가 10분 전 데이터) -->
+    <select id="selectReservationMemosCount" resultType="int">
+        SELECT COUNT(memo_sid) cnt
+        FROM   cdm_own.sup_memo
+        WHERE  user_id = #{userId}
+        AND    memo_alrm_dt <![CDATA[ <= ]]> TO_CHAR(NOW() - INTERVAL '10 minutes','YYYYMMDDHH24MISS')
+        AND    memo_alrm_yn = 'Y'
+    </select>
+
+</mapper>

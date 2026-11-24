@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.cmpymenu.mapper.CmpyMenuMapper">
+
+    <!-- Result Map -->
+    <resultMap id="MenuListResVoMap" type="buttle.apptpl.api.shared.vo.MenuListResVo">
+        <result column="cmpy_type_cd" property="cmpyTypeCd" />
+        <result column="menu_id" property="menuId" />
+        <result column="menu_nm" property="menuNm" />
+        <result column="url_addr" property="urlAddr" />
+        <result column="npag_yn" property="npagYn" />
+        <result column="up_menu_id" property="upMenuId" />
+        <result column="sort_sn" property="sortSn" />
+        <result column="scrn_size" property="scrnSize" />
+        <result column="menu_use_yn" property="menuUseYn" />
+    </resultMap>
+
+    <!-- 메뉴 목록 조회 -->
+    <select id="selectMenuList" parameterType="buttle.apptpl.api.shared.vo.MenuListReqVo" resultMap="MenuListResVoMap">
+        SELECT
+            cmpy_type_cd,
+            menu_id,
+            menu_nm,
+            url_addr,
+            npag_yn,
+            up_menu_id,
+            sort_sn,
+            scrn_size,
+            menu_use_yn
+        FROM
+            cdm_own.cmpt_cmpy_menu
+        WHERE
+            cmpy_type_cd = #{cmpyTypeCd}
+        ORDER BY
+            sort_sn ASC, menu_id ASC
+    </select>
+
+    <!-- 메뉴 등록 -->
+    <insert id="insertMenu" parameterType="buttle.apptpl.api.shared.vo.MenuSaveReqVo">
+        INSERT INTO cdm_own.cmpt_cmpy_menu (
+            cmpy_type_cd,
+            menu_id,
+            menu_nm,
+            url_addr,
+            npag_yn,
+            up_menu_id,
+            sort_sn,
+            scrn_size,
+            menu_use_yn,
+            rgtr_id,
+            reg_dt,
+            mdfr_id,
+            mdfcn_dt
+        ) VALUES (
+            #{cmpyTypeCd},
+            #{menuId},
+            #{menuNm},
+            #{urlAddr},
+            #{npagYn},
+            #{upMenuId},
+            #{sortSn},
+            #{scrnSize},
+            #{menuUseYn},
+            'system',
+            CURRENT_TIMESTAMP,
+            'system',
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 메뉴 수정 -->
+    <update id="updateMenu" parameterType="buttle.apptpl.api.shared.vo.MenuSaveReqVo">
+        UPDATE cdm_own.cmpt_cmpy_menu
+        SET
+            menu_nm = #{menuNm},
+            url_addr = #{urlAddr},
+            npag_yn = #{npagYn},
+            up_menu_id = #{upMenuId},
+            sort_sn = #{sortSn},
+            scrn_size = #{scrnSize},
+            menu_use_yn = #{menuUseYn},
+            mdfr_id = 'system',
+            mdfcn_dt = CURRENT_TIMESTAMP
+        WHERE
+            cmpy_type_cd = #{cmpyTypeCd}
+            AND menu_id = #{menuId}
+    </update>
+
+    <!-- 회원사 유형별 전체 메뉴 삭제 -->
+    <delete id="deleteMenuAll" parameterType="String">
+        DELETE FROM cdm_own.cmpt_cmpy_menu
+        WHERE cmpy_type_cd = #{cmpyTypeCd}
+    </delete>
+
+</mapper>

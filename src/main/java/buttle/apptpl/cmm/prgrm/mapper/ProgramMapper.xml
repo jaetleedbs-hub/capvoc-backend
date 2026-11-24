@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.prgrm.mapper.ProgramMapper">
+
+    <!-- API 조회 -->
+    <select id="ApAuthList" parameterType="buttle.apptpl.cmm.prgrm.vo.SYS3040001Vo" resultType="buttle.apptpl.cmm.prgrm.vo.SYS3040001Vo">
+        SELECT
+            a.prgrm_id,   /* 프로그램 ID */
+            a.prgrm_nm,   /* 프로그램 명 */
+            a.http_mthd_nm AS http_method, /* http 메소드 */
+            a.url_addr_ptrn_cntn AS url_addr_ptrn, /* URL 주소 패턴 */
+            a.sort_seq AS sort_sn,    /* 정렬 일련번호 */
+            a.sys_reg_usr_id AS rgtr_id,    /* 등록자 ID */
+            a.sys_reg_dttm AS reg_dt,     /* 등록일시 */
+            a.sys_chg_usr_id AS mdfr_id,    /* 수정자 ID */
+            a.sys_chg_dttm AS mdfcn_dt    /* 수정일시 */
+        FROM cdm_own.prgrm a /* 프로그램 */
+        WHERE 1=1
+        <if test="prgrmIdOrNm != null and prgrmIdOrNm != ''">
+            AND (a.prgrm_id LIKE '%' || #{prgrmIdOrNm} || '%' OR a.prgrm_nm LIKE '%' || #{prgrmIdOrNm} || '%')
+        </if>
+        ORDER BY a.sort_seq, a.prgrm_id
+    </select>
+
+</mapper> 

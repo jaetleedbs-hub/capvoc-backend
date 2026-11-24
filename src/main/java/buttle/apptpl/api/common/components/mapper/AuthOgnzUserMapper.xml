@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper">
+
+
+    <sql id="subOgnzCdPre">
+                    with recursive sub_orgs as (
+                        select
+                            ognz_cd
+                        from
+                            cdm_own.view_ognz
+                        where
+                            ognz_cd =     
+    </sql>
+
+    <sql id="subOgnzCdPost">
+                            and use_yn = 'Y'
+                        union all
+                        select
+                            v.ognz_cd
+                        from
+                            cdm_own.view_ognz v
+                        join sub_orgs s on
+                            v.up_ognz_cd = s.ognz_cd
+                        where
+                            use_yn = 'Y'
+                    )
+                    select
+                        ognz_cd
+                    from
+                        sub_orgs
+    </sql>
+
+
+    <!-- 문자 발송 조직 코드 -->
+    <sql id="smsSndngOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{smsSndngOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{smsSndngOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+
+    <!-- 상담 등록 조직 코드 -->
+    <sql id="dscsnOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{dscsnOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{dscsnOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+
+    <!-- 통화 예약 등록 조직 코드 -->
+    <sql id="dscsnRsvtOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{dscsnRsvtOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{dscsnRsvtOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+    <!-- 콜백 배정 조직 코드 -->
+    <sql id="callbakAltmntOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{callbakAltmntOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{callbakAltmntOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+    <!-- 대상 조직 코드 -->
+    <sql id="targetOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{targetOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{targetOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+    <!-- 캠페인인 조직 코드 -->
+    <sql id="cmpOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{cmpOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{cmpOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+    <!-- 평가자 조직 코드 -->
+    <sql id="evaluatorOgnzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{evaluatorOgnzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{evaluatorOgnzCd}
+            </otherwise>
+        </choose>        
+    </sql>
+
+    <!-- 조직 코드 -->
+    <sql id="ognzCd">
+        <choose>
+            <!-- 하위 조회 가능한 경우 -->
+            <when test="sessionUser.ognzInqRangCd == '02' or sessionUser.ognzInqRangCd == '01'">
+                <include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPre" />#{ognzCd}<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.subOgnzCdPost" />
+            </when>
+            <otherwise>
+                #{ognzCd}
+            </otherwise>
+        </choose>
+    </sql>
+
+</mapper> 

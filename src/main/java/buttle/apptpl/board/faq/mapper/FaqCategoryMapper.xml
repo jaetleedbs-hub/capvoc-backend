@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.board.faq.mapper.FaqCategoryMapper">
+
+    <!-- FAQ 분류 조회 -->
+    <select id="selectCategoryList" parameterType="buttle.apptpl.api.shared.vo.CategoryListReqVo" resultType="buttle.apptpl.api.shared.vo.CategoryListResVo">
+        SELECT
+            a.cd_grop_cd AS cd_group, /* 코드그룹 */
+            a.cmmn_cd AS cd,          /* 코드 */
+            a.cmmn_cd_nm AS cd_nm,    /* 코드명 */
+            a.use_yn,        /* 사용여부 */
+            a.sort_seq AS sort_order,  /* 정렬순서 */
+            TO_CHAR(a.sys_reg_dttm, 'YYYY-MM-DD HH24:MI:SS') AS reg_dt  /* 등록일시 */
+        FROM cdm_own.cmmn_cd a  /* 코드 */
+        WHERE 1=1
+            AND a.cd_grop_cd = 'FAQ_CLSF_CD'
+            AND a.lcal_cd = 'ko'
+            AND a.use_yn = 'Y'
+            <if test="searchKeyword != null and searchKeyword != ''">
+            AND a.cmmn_cd_nm LIKE '%' || #{searchKeyword} || '%'
+            </if>
+        ORDER BY a.sort_seq, a.cmmn_cd
+    </select>
+    
+    <!-- FAQ 분류 등록 -->
+    <insert id="insertCategory" parameterType="buttle.apptpl.api.shared.vo.CategorySaveReqVo">
+        INSERT INTO cdm_own.cmmn_cd (
+            cd_grop_cd,
+            cmmn_cd,
+            cmmn_cd_nm,
+            lcal_cd,
+            sort_seq,
+            use_yn,
+            sys_reg_dttm,
+            sys_reg_usr_id
+        ) VALUES (
+            'FAQ_CLSF_CD',
+             COALESCE((SELECT MAX(CAST(cmmn_cd AS INTEGER))+1 +1 FROM cdm_own.cmmn_cd WHERE cd_grop_cd = 'FAQ_CLSF_CD'),1),
+            #{cdNm},
+            'ko',
+            COALESCE(
+                (SELECT MAX(CAST(sort_seq AS INTEGER))+1 +1 FROM cdm_own.cmmn_cd WHERE cd_grop_cd = 'FAQ_CLSF_CD'), 
+                0
+            ) + 1,
+            'Y',
+            NOW(),
+            #{regId}
+        )
+    </insert>
+    
+    <!-- FAQ 분류 수정 -->
+    <update id="updateCategory" parameterType="buttle.apptpl.api.shared.vo.CategorySaveReqVo">
+        UPDATE cdm_own.cmmn_cd
+        SET cmmn_cd_nm = #{cdNm},
+            sort_seq = #{sortOrder},
+            sys_chg_dttm = NOW(),
+            sys_chg_usr_id = #{updId}
+        WHERE cd_grop_cd = 'FAQ_CLSF_CD'
+          AND cmmn_cd = #{cd}
+          AND lcal_cd = 'ko'
+    </update>
+    
+    <!-- FAQ 분류 삭제 -->
+    <delete id="deleteCategory" parameterType="buttle.apptpl.api.shared.vo.CategoryDeleteReqVo">
+        DELETE FROM cdm_own.cmmn_cd
+        WHERE cd_grop_cd = 'FAQ_CLSF_CD'
+          AND cmmn_cd = #{cd}
+          AND lcal_cd = 'ko'
+    </delete>
+    
+    <!-- 코드 존재 여부 확인 -->
+    <select id="existsCategory" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM cdm_own.cmmn_cd
+        WHERE cd_grop_cd = 'FAQ_CLSF_CD'
+          AND cmmn_cd = #{cd}
+          AND lcal_cd = 'ko'
+    </select>
+    
+    <!-- 다음 정렬순서 조회 -->
+    <select id="selectNextSortOrder" resultType="integer">
+        SELECT COALESCE(MAX(sort_seq), 0) + 1
+        FROM cdm_own.cmmn_cd
+        WHERE cd_grop_cd = 'FAQ_CLSF_CD'
+          AND lcal_cd = 'ko'
+    </select>
+
+</mapper>

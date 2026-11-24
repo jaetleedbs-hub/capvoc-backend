@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.loginuser.mapper.LoginUserInfoMapper">
+
+    <!-- 사용자 프로필 조회 -->
+    <select id="selectUserProfile" parameterType="buttle.apptpl.cmm.loginuser.vo.COM1100001Vo" resultType="buttle.apptpl.cmm.loginuser.vo.COM1100002Vo">
+        SELECT
+            a.usr_id AS user_id,    /* 사용자 ID */
+            b.ognz_nm,              /* 조직명 */
+            c.auth_nm AS authrt_nm, /* 권한명 */
+            a.usr_phto AS user_photo /* 사용자 사진 */
+        FROM cdm_own.usr a /* 사용자 */
+        LEFT JOIN cdm_own.ognz b /* 조직 */ ON a.ognz_cd = b.ognz_cd
+        LEFT JOIN cdm_own.auth c /* 권한 */ ON a.auth_cd = c.auth_cd
+        WHERE 1=1
+        <if test="userId != null and userId != ''">
+            AND a.usr_id = #{userId}
+        </if>
+    </select>
+
+    <!-- 사용자 이미지 변경 -->
+    <update id="updateUserImage" parameterType="buttle.apptpl.cmm.loginuser.vo.COM1100003Vo">
+        UPDATE cdm_own.usr /* 사용자 */
+        SET usr_phto = #{userPhoto} /* 사용자 사진 */
+            ,sys_chg_usr_id = #{userId}
+            ,sys_chg_dttm = CURRENT_TIMESTAMP
+        WHERE usr_id = #{userId}
+    </update>
+
+</mapper> 

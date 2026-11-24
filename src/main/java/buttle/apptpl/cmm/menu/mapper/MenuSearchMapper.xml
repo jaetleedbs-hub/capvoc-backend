@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.menu.mapper.MenuSearchMapper">
+
+    <!-- 메뉴 조회 -->
+    <select id="selectMenuList" parameterType="buttle.apptpl.cmm.menu.vo.SYS1020001Vo" resultType="buttle.apptpl.cmm.menu.vo.SYS1020002Vo">
+		WITH RECURSIVE menu_tree AS (
+         SELECT menu.menu_id, 
+		        menu.menu_nm, 
+		        menu.anct_menu_id AS up_menu_id, 
+		        menu.npag_yn,
+            menu.url_addr,
+            LPAD(CAST(COALESCE(menu.sort_seq, 0) AS VARCHAR),3,'0') as sort_path,
+            CAST(menu.menu_nm AS CHARACTER VARYING) as up_menu_id_nm,
+            menu.menu_use_yn,
+		        1 AS level
+     	   from cdm_own.menu menu
+     inner join cdm_own.menu_auth authrt
+             on menu.menu_id = authrt.menu_id 
+	      WHERE (menu.anct_menu_id IS null or menu.anct_menu_id ='')
+	        and authrt.auth_cd = #{authrtCd}
+       UNION ALL
+         SELECT menu.menu_id, 
+		        menu.menu_nm, 
+		        menu.anct_menu_id AS up_menu_id, 
+		        menu.npag_yn,
+            menu.url_addr,
+            mt.sort_path || '-' || LPAD(CAST(COALESCE(menu.sort_seq, 1) AS VARCHAR),3,'0') as sort_path,
+            mt.up_menu_id_nm || ' >' || menu.menu_nm as up_menu_id_nm,
+            menu.menu_use_yn,
+		        mt.level + 1 AS level
+		   FROM cdm_own.menu menu
+     inner join cdm_own.menu_auth authrt
+             on menu.menu_id = authrt.menu_id 
+     inner join menu_tree mt
+             ON menu.anct_menu_id = mt.menu_id
+	      WHERE authrt.auth_cd = #{authrtCd}
+		)
+	  SELECT menu_nm,
+             menu_id,
+             menu.npag_yn,
+             menu.up_menu_id_nm,
+             menu.url_addr,
+		     COALESCE(up_menu_id, '') as up_menu_id,
+		     sort_path,
+		     level
+		FROM menu_tree menu
+	   where COALESCE(menu.menu_use_yn, 'Y') != 'N'
+       and menu.npag_yn != 'X'
+        <if test="menuIdOrNm != null and menuIdOrNm != ''">
+            AND (menu.menu_id LIKE '%' || #{menuIdOrNm} || '%' OR menu.menu_nm LIKE '%' || #{menuIdOrNm} || '%')  /* 메뉴 ID 또는 명 */
+        </if>
+    order by sort_path
+    </select>
+
+</mapper> 

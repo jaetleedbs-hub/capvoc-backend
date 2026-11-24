@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.cmpyuser.mapper.CmpyUserMapper">
+
+    <!-- 사용자 목록 조회 -->
+    <select id="getUserList" parameterType="buttle.apptpl.api.shared.vo.UserSearchReqVo" resultType="buttle.apptpl.api.shared.vo.UserListResVo">
+        SELECT
+            ROW_NUMBER() OVER(ORDER BY a.usr_id) AS rownum,         -- 순번
+            a.usr_id AS userId,                                         -- 사용자ID
+            a.usr_nm AS userNm,                                         -- 사용자명
+            a.ognz_cd AS deptCd,                                        -- 소속부서코드
+            b.ognz_nm AS deptNm,                                        -- 소속부서명
+            a.auth_cd AS userGradeCd,                                   -- 사용자등급코드
+            d.auth_nm AS userGradeNm,                                  -- 사용자등급명
+            a.lgn_yn AS lgnYn,                                          -- 로그인여부
+            a.lgn_ip AS lgnIp,                                          -- 로그인IP
+            c.cmmn_cd_nm AS wrkStatNm,                                -- 근태코드명
+            s.wrk_stat_cd AS wrkStatCd,                                -- 근태코드
+            TO_CHAR(a.entr_dt, 'YYYYMMDD') AS jncmpYmd,                -- 입사일자
+            TO_CHAR(a.rtir_dt, 'YYYYMMDD') AS rsgntnYmd,               -- 퇴사일자
+            CASE 
+                WHEN a.entr_dt IS NOT NULL
+                THEN TO_CHAR(a.entr_dt, 'YYYY-MM-DD')
+                ELSE NULL 
+            END AS useStartYmd,  -- 사용시작일
+            CASE 
+                WHEN a.rtir_dt IS NOT NULL
+                THEN TO_CHAR(a.rtir_dt, 'YYYY-MM-DD')
+                ELSE NULL 
+            END AS useEndYmd -- 사용종료일
+        FROM cdm_own.usr a
+        LEFT JOIN cdm_own.ognz b ON a.ognz_cd = b.ognz_cd
+        LEFT JOIN cdm_own.sup_wrk_stat s ON s.user_id = a.usr_id AND a.ognz_cd = s.ognz_cd AND s.crtr_ymd = TO_CHAR(CURRENT_DATE, 'YYYYMMDD')
+        LEFT JOIN cdm_own.cmmn_cd c ON c.cd_grop_cd = 'WRK_STAT_CD' AND c.cmmn_cd = s.wrk_stat_cd AND c.lcal_cd = 'ko'
+        LEFT JOIN cdm_own.auth d ON a.auth_cd = d.auth_cd
+        WHERE 1=1
+        <if test="ognzCd != null and ognzCd != ''">
+            AND a.ognz_cd = #{ognzCd}
+        </if>
+        <if test="userGradeCd != null and userGradeCd != ''">
+            AND a.auth_cd = #{userGradeCd}
+        </if>
+        <if test="userId != null and userId != ''">
+            AND a.usr_id LIKE '%' || #{userId} || '%'
+        </if>
+        <if test="userNm != null and userNm != ''">
+            AND a.usr_nm LIKE '%' || #{userNm} || '%'
+        </if>
+        <if test="useYn != null and useYn != ''">
+            AND a.use_yn = #{useYn}
+        </if>
+        ORDER BY a.sys_reg_dttm desc, a.usr_id
+    </select>
+
+    <!-- 사용자 상세 조회 -->
+    <select id="getUserDetail" parameterType="string" resultType="buttle.apptpl.api.shared.vo.UserDetailResVo">
+        SELECT
+            a.usr_id AS userId,                      -- 사용자ID
+            a.usr_nm AS userNm,                      -- 사용자명
+            a.auth_cd AS userGradeCd,                -- 사용자등급코드
+            a.usr_tpcd AS userTypeCd,                -- 사용자유형코드
+            a.ognz_cd AS ognzCd,                     -- 조직코드
+            b.ognz_nm AS ognzNm,                     -- 조직명
+            TO_CHAR(a.entr_dt, 'YYYYMMDD') AS jncmpYmd, -- 입사일자
+            TO_CHAR(a.rtir_dt, 'YYYYMMDD') AS rsgntnYmd, -- 퇴사일자
+            a.home_tel_no AS homeTelNo,             -- 자택전화번호
+            a.mbl_tel_no AS mblTelNo,               -- 휴대전화번호
+            a.eml_addr AS emlAddr,                   -- 이메일주소
+            a.use_yn AS useYn,                       -- 사용여부
+            a.lgn_yn AS lgnYn,                       -- 로그인여부
+            a.lgn_ip AS lgnIp,                       -- 로그인IP
+            a.lgn_try_rcn AS lgnTryCnt,              -- 로그인시도횟수
+            TO_CHAR(a.pswd_chg_dttm, 'YYYYMMDDHH24MISS') AS pswdChgDt, -- 비밀번호변경일시
+            a.usr_phto AS userPhoto                  -- 사용자사진
+        FROM cdm_own.usr a
+        LEFT JOIN cdm_own.ognz b ON a.ognz_cd = b.ognz_cd
+        WHERE a.usr_id = #{userId}
+    </select>
+
+    <!-- 사용자 정보 등록 -->
+    <insert id="insertUser" parameterType="buttle.apptpl.api.shared.vo.UserSaveReqVo">
+        INSERT INTO cdm_own.usr (
+            usr_id,                     -- 사용자ID
+            usr_nm,                     -- 사용자명
+            pswd,                       -- 비밀번호
+            auth_cd,                    -- 권한코드(사용자등급)
+            usr_tpcd,                   -- 사용자유형코드
+            ognz_cd,                    -- 조직코드
+            entr_dt,                    -- 입사일자
+            rtir_dt,                    -- 퇴사일자
+            home_tel_no,                -- 자택전화번호
+            mbl_tel_no,                 -- 휴대전화번호
+            eml_addr,                   -- 이메일주소
+            use_yn,                     -- 사용여부
+            usr_phto,                   -- 사용자사진
+            lgn_yn,                     -- 로그인여부
+            lgn_try_rcn,                -- 로그인시도횟수
+            sys_reg_usr_id,             -- 등록자ID
+            sys_reg_dttm,               -- 등록일시
+            sys_chg_usr_id,             -- 수정자ID
+            sys_chg_dttm                -- 수정일시
+        ) VALUES (
+            #{userId},
+            #{userNm},
+            #{pswd},
+            #{userGradeCd},
+            #{userTypeCd},
+            #{ognzCd},
+            TO_DATE(NULLIF(#{jncmpYmd}, ''), 'YYYYMMDD'),
+            TO_DATE(NULLIF(#{rsgntnYmd}, ''), 'YYYYMMDD'),
+            <!-- [PII-6] 연락처는 GCM 으로 저장한다(V84 가 폭을 넓혔다). 조회 조건이 0곳이라
+                 검색 키가 필요 없고, 읽기는 corebase 조회 복호 인터셉터가 접두로 알아서 복호한다. -->
+            #{homeTelNo,typeHandler=micoai.corebase.pii.PiiGcmTypeHandler},
+            #{mblTelNo,typeHandler=micoai.corebase.pii.PiiGcmTypeHandler},
+            #{emlAddr,typeHandler=micoai.corebase.pii.PiiGcmTypeHandler},
+            #{useYn},
+            #{userPhoto},
+            'N',                        -- 최초 로그인 여부 N
+            0,                          -- 로그인 시도 횟수 0
+            #{rgtrId},
+            CURRENT_TIMESTAMP,
+            #{mdfrId},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 사용자 정보 수정 -->
+    <update id="updateUser" parameterType="buttle.apptpl.api.shared.vo.UserSaveReqVo">
+        UPDATE cdm_own.usr
+        SET
+            usr_nm = #{userNm},                     -- 사용자명
+            auth_cd = #{userGradeCd},               -- 권한코드(사용자등급)
+            usr_tpcd = #{userTypeCd},               -- 사용자유형코드
+            ognz_cd = #{ognzCd},                    -- 조직코드
+            entr_dt = TO_DATE(NULLIF(#{jncmpYmd}, ''), 'YYYYMMDD'), -- 입사일자
+            rtir_dt = TO_DATE(NULLIF(#{rsgntnYmd}, ''), 'YYYYMMDD'), -- 퇴사일자
+            <!-- [PII-6] 연락처는 GCM. 화면이 되돌려 보내는 값은 복호된 평문이라 이중 암호화가 아니다. -->
+            home_tel_no = #{homeTelNo,typeHandler=micoai.corebase.pii.PiiGcmTypeHandler},  -- 자택전화번호
+            mbl_tel_no = #{mblTelNo,typeHandler=micoai.corebase.pii.PiiGcmTypeHandler},    -- 휴대전화번호
+            eml_addr = #{emlAddr,typeHandler=micoai.corebase.pii.PiiGcmTypeHandler},       -- 이메일주소
+            use_yn = #{useYn},                      -- 사용여부
+            usr_phto = #{userPhoto},                -- 사용자사진
+            sys_chg_usr_id = #{mdfrId},             -- 수정자ID
+            sys_chg_dttm = CURRENT_TIMESTAMP        -- 수정일시
+        WHERE usr_id = #{userId}                    -- 사용자ID (변경 불가)
+    </update>
+
+    <!-- 사용자ID 중복 확인 -->
+    <select id="checkUserIdDuplicate" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM cdm_own.usr
+        WHERE usr_id = #{userId}
+    </select>
+
+    <!-- 로그인 정보 초기화 -->
+    <update id="resetUserLogin" parameterType="string">
+        UPDATE cdm_own.usr
+        SET
+            lgn_yn = 'N',                           -- 로그인여부 초기화
+            lgn_try_rcn = 0,                        -- 로그인시도횟수 초기화
+            lgn_ip = NULL,                          -- 로그인IP 초기화
+            sys_chg_dttm = CURRENT_TIMESTAMP        -- 수정일시
+        WHERE usr_id = #{userId}
+    </update>
+
+    <!-- 기존 YYYYMMDD 값과 동일하게 자정으로 저장해 비밀번호 만료 판정 기준을 유지한다. -->
+    <update id="resetUserPassword">
+        UPDATE cdm_own.usr
+        SET
+            pswd = #{encryptedPassword},            -- 암호화된 임시 비밀번호
+            pswd_chg_dttm = CURRENT_DATE::timestamp, -- 비밀번호변경일시
+            sys_chg_dttm = CURRENT_TIMESTAMP        -- 수정일시
+        WHERE usr_id = #{userId}
+    </update>
+
+    <!-- 사용자 권한(등급) 목록 조회 -->
+    <select id="getAuthrtList" resultType="buttle.apptpl.api.shared.vo.AuthrtResVo">
+        SELECT
+            auth_cd AS authrtCd,            -- 권한코드
+            auth_nm AS authrtNm,            -- 권한명
+            auth_dvcd AS authrtSe,          -- 권한구분
+            use_yn AS useYn                 -- 사용여부
+        FROM cdm_own.auth
+        WHERE use_yn = 'Y'
+        ORDER BY sort_seq, auth_cd
+    </select>
+
+</mapper>

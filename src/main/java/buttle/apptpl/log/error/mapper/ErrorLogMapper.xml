@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.log.error.mapper.ErrorLogMapper">
+
+    <!--
+      오류로그 목록 — admin 자기 스키마를 읽는다(형제 SYS6040 과 같은 자리).
+
+      ⚠ err_cn 은 «선택하지 않는다». 사유는 4,000자까지 가고 실측 최대가 35,306자였다.
+         목록에 담으면 한 페이지가 수백 KB 가 된다. 상세에서만 연다.
+
+      날짜 포맷은 형제 화면 방식 그대로 TO_CHAR 로 만든다 — 화면마다 따로 정하지 않는다.
+      정렬도 log_dt DESC 로 형제와 같고, ix_admin_error_dt 가 그 순서다.
+    -->
+    <select id="selectErrorLogList"
+            parameterType="buttle.apptpl.log.error.vo.SYS6020001Vo"
+            resultType="buttle.apptpl.log.error.vo.SYS6020002Vo">
+        SELECT
+            a.log_sid,                                                   /* 로그 시퀀스ID */
+            TO_CHAR(a.log_dt, 'YYYY-MM-DD HH24:MI:SS') AS log_dt,        /* 로그 일시 */
+            a.svc_cd,                                                    /* 어느 서비스가 아팠나 */
+            a.sev_cd,                                                    /* 등급 */
+            a.fail_kind_cd,                                              /* 실패 종류 */
+            a.cmpy_id,                                                   /* 어느 회원사가 겪었나 */
+            a.svr_id,                                                    /* 어느 서버 인스턴스 */
+            a.subject,                                                   /* 무엇에 대해 */
+            a.err_cd                                                     /* 오류 코드(예외 클래스명 등) */
+        FROM cdm_own.logt_error_log a
+        WHERE 1=1
+        <if test="svcCd != null and svcCd != ''">
+            AND a.svc_cd = #{svcCd}
+        </if>
+        <if test="sevCd != null and sevCd != ''">
+            AND a.sev_cd = #{sevCd}
+        </if>
+        <if test="failKindCd != null and failKindCd != ''">
+            AND a.fail_kind_cd = #{failKindCd}
+        </if>
+        <if test="cmpyId != null and cmpyId != ''">
+            AND a.cmpy_id = #{cmpyId}
+        </if>
+        <if test="subject != null and subject != ''">
+            AND a.subject LIKE '%' || #{subject} || '%'
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND a.log_dt &gt;= TO_TIMESTAMP(#{startDate} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND a.log_dt &lt;= TO_TIMESTAMP(#{endDate} || ' 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
+        </if>
+        ORDER BY a.log_dt DESC, a.log_sid DESC
+    </select>
+
+    <!--
+      상세 — 여기서만 err_cn 을 연다.
+
+      src_schema·src_log_id 는 «배치가 다른 스키마에서 끌어온 행»에만 있다.
+      admin 이 자기 오류를 남긴 행은 비어 있는 것이 정상이고, 화면은 그 둘이 있을 때만 보인다.
+    -->
+    <select id="selectErrorLog"
+            resultType="buttle.apptpl.log.error.vo.SYS6020003Vo">
+        SELECT
+            a.log_sid,
+            TO_CHAR(a.log_dt, 'YYYY-MM-DD HH24:MI:SS') AS log_dt,
+            a.svc_cd,
+            a.sev_cd,
+            a.fail_kind_cd,
+            a.cmpy_id,
+            a.svr_id,
+            a.subject,
+            a.err_cd,
+            a.err_cn,                                                    /* 사유 전문 */
+            a.src_schema,                                                /* 원본 스키마(배치가 끌어온 행) */
+            a.src_log_id                                                 /* 원본 로그ID */
+        FROM cdm_own.logt_error_log a
+        WHERE a.log_sid = #{logSid}
+    </select>
+
+</mapper>

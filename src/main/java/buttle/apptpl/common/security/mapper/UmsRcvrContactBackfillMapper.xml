@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.common.security.mapper.UmsRcvrContactBackfillMapper">
+
+    <!-- [PII-6] 백필 대상 = 「내용이 있는데 아직 GCM 이 아니다」.
+
+         ★ 빈 문자열('')을 반드시 제외한다. 암호화할 것이 없어 갱신해도 조건을 벗어나지 못하고,
+           같은 행을 무한히 다시 잡는다. PII-2 에서 실제로 43행을 500번 다시 잡았다.
+
+         ★ is null 만 보지 않는다 — <값은 있으나 형식이 옛것인> 행(레거시 CBC)이 대상이고,
+           그런 행이 실제로 있다(실측 2026-08-31: 전화 196건 중 28건).
+
+         ★ 검색 키가 비었는지는 <조건에 넣지 않는다>. 근거는 불변식이다 —
+           bidx 는 암호문과 <같은 UPDATE 문>에서 함께 쓰인다(쓰기 경로도, 백필도).
+           그러니 암호문이 GCM 인데 bidx 가 비었다면 그건 「아직 안 만들었다」가 아니라
+           <만들 수 없는 값>이라는 뜻이다(숫자가 하나도 없는 전화, 빈 이메일 등 —
+           PiiAttrType 이 그런 값을 색인하지 않는다).
+           조건에 넣으면 그 행은 갱신해도 조건을 못 벗어나 영원히 다시 잡힌다.
+           실측 2026-08-31: 실제로 그런 행이 1건 있었다(ums_id=PRfix-…, 평문 약 8바이트·숫자 0개). -->
+    <sql id="where-pending">
+        (
+            (mbr_telno IS NOT NULL AND mbr_telno &lt;&gt; '' AND mbr_telno NOT LIKE 'CCG1:%')
+         OR (mbr_eml_addr IS NOT NULL AND mbr_eml_addr &lt;&gt; '' AND mbr_eml_addr NOT LIKE 'CCG1:%')
+        )
+    </sql>
+
+    <!-- 별칭을 <명시>한다. admin 은 mapUnderscoreToCamelCase=true 라 resultType=map 의 키가
+         설정에 따라 달라질 수 있다. 서비스가 row.get("...") 으로 꺼내므로 여기서 못 박는다 —
+         키가 어긋나면 값이 null 로 읽히고, 그건 예외가 아니라 <조용한 오작동>이다. -->
+    <select id="selectPending" resultType="map">
+        /** UmsRcvrContactBackfillMapper.selectPending */
+        SELECT ums_id       AS "umsId"
+             , ums_sn       AS "umsSn"
+             , mbr_telno    AS "mbrTelno"
+             , mbr_eml_addr AS "mbrEmlAddr"
+          FROM cdm_own.cmpt_ums_rcvr
+         WHERE <include refid="where-pending" />
+         ORDER BY ums_id, ums_sn
+         LIMIT #{limit}
+    </select>
+
+    <update id="updateOne">
+        /** UmsRcvrContactBackfillMapper.updateOne */
+        UPDATE cdm_own.cmpt_ums_rcvr
+           SET mbr_telno         = #{telno}
+              ,mbr_telno_bidx    = #{telnoBidx}
+              ,mbr_eml_addr      = #{email}
+              ,mbr_eml_addr_bidx = #{emailBidx}
+         WHERE ums_id = #{umsId}
+           AND ums_sn = #{umsSn}
+    </update>
+
+    <select id="countPending" resultType="int">
+        /** UmsRcvrContactBackfillMapper.countPending */
+        SELECT COUNT(*) FROM cdm_own.cmpt_ums_rcvr WHERE <include refid="where-pending" />
+    </select>
+
+    <select id="countTotal" resultType="int">
+        /** UmsRcvrContactBackfillMapper.countTotal */
+        SELECT COUNT(*) FROM cdm_own.cmpt_ums_rcvr
+         WHERE (mbr_telno IS NOT NULL AND mbr_telno &lt;&gt; '')
+            OR (mbr_eml_addr IS NOT NULL AND mbr_eml_addr &lt;&gt; '')
+    </select>
+
+    <!-- ============ [PII-6 잔여] 임직원·계약담당자 연락처 ============
+         usr 와 cmpt_cmpy_inf 는 <검색 키가 없다>(조회 술어 0곳). 그래서 UMS 수신자와 달리
+         bidx 를 만들지 않고 암호화만 한다. 대상 조건은 같은 원칙이다 —
+         「내용이 있는데 아직 GCM 이 아니다」, 빈 문자열은 제외. -->
+
+    <sql id="where-user-pending">
+        (
+            (mbl_tel_no  IS NOT NULL AND mbl_tel_no  &lt;&gt; '' AND mbl_tel_no  NOT LIKE 'CCG1:%')
+         OR (home_tel_no IS NOT NULL AND home_tel_no &lt;&gt; '' AND home_tel_no NOT LIKE 'CCG1:%')
+         OR (eml_addr    IS NOT NULL AND eml_addr    &lt;&gt; '' AND eml_addr    NOT LIKE 'CCG1:%')
+        )
+    </sql>
+
+    <select id="selectUserPending" resultType="map">
+        /** UmsRcvrContactBackfillMapper.selectUserPending */
+        SELECT usr_id      AS "userId"
+             , mbl_tel_no  AS "mblTelNo"
+             , home_tel_no AS "homeTelNo"
+             , eml_addr    AS "emlAddr"
+          FROM cdm_own.usr
+         WHERE <include refid="where-user-pending" />
+         ORDER BY usr_id
+         LIMIT #{limit}
+    </select>
+
+    <update id="updateUserOne">
+        /** UmsRcvrContactBackfillMapper.updateUserOne */
+        UPDATE cdm_own.usr
+           SET mbl_tel_no  = #{mblTelNo}
+              ,home_tel_no = #{homeTelNo}
+              ,eml_addr    = #{emlAddr}
+         WHERE usr_id = #{userId}
+    </update>
+
+    <select id="countUserPending" resultType="int">
+        /** UmsRcvrContactBackfillMapper.countUserPending */
+        SELECT COUNT(*) FROM cdm_own.usr WHERE <include refid="where-user-pending" />
+    </select>
+
+    <sql id="where-cmpy-pending">
+        (
+            (cntct_phone IS NOT NULL AND cntct_phone &lt;&gt; '' AND cntct_phone NOT LIKE 'CCG1:%')
+         OR (cntct_email IS NOT NULL AND cntct_email &lt;&gt; '' AND cntct_email NOT LIKE 'CCG1:%')
+        )
+    </sql>
+
+    <select id="selectCmpyPending" resultType="map">
+        /** UmsRcvrContactBackfillMapper.selectCmpyPending */
+        SELECT cmpy_id     AS "cmpyId"
+             , cntct_phone AS "cntctPhone"
+             , cntct_email AS "cntctEmail"
+          FROM cdm_own.cmpt_cmpy_inf
+         WHERE <include refid="where-cmpy-pending" />
+         ORDER BY cmpy_id
+         LIMIT #{limit}
+    </select>
+
+    <update id="updateCmpyOne">
+        /** UmsRcvrContactBackfillMapper.updateCmpyOne */
+        UPDATE cdm_own.cmpt_cmpy_inf
+           SET cntct_phone = #{cntctPhone}
+              ,cntct_email = #{cntctEmail}
+         WHERE cmpy_id = #{cmpyId}
+    </update>
+
+    <select id="countCmpyPending" resultType="int">
+        /** UmsRcvrContactBackfillMapper.countCmpyPending */
+        SELECT COUNT(*) FROM cdm_own.cmpt_cmpy_inf WHERE <include refid="where-cmpy-pending" />
+    </select>
+
+</mapper>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.board.notice.mapper.NoticeMapper">
+
+    <!-- 공지사항 목록조회 -->
+    <select id="selectNoticeList" parameterType="buttle.apptpl.api.shared.vo.BO301SNoticeSearchReqVo" resultType="buttle.apptpl.api.shared.vo.BO301SNoticeListResVo">
+        /* NoticeMapper.selectNoticeList - 공지사항 목록조회 */
+        SELECT 
+            p.pst_id AS pstId,
+            p.bbs_id AS bbsId,
+            p.ttl AS ttl,
+            p.pst_cn AS pstCn,
+            COALESCE(p.ntc_yn,'N') AS ntcYn,
+            COALESCE(p.top_std_yn,'N') AS topStdYn,
+            COALESCE(p.view_use_yn,'N') AS viewUseYn,
+            p.bbs_st_ymd AS bbsStYmd,
+            p.bbs_st_tm AS bbsStTm,
+            p.bbs_ed_ymd AS bbsEdYmd,
+            p.bbs_ed_tm AS bbsEdTm,
+            to_CHAR(p.bbs_st_ymd::DATE,'YYYY-MM-DD')|| ' '|| TO_CHAR(TO_TIMESTAMP(p.bbs_st_tm, 'HH24MISS'), 'HH24:MI') AS bbsStDt,
+            to_CHAR(p.bbs_ed_ymd::DATE,'YYYY-MM-DD')|| ' '|| TO_CHAR(TO_TIMESTAMP(p.bbs_ed_tm, 'HH24MISS'), 'HH24:MI') AS bbsEdDt,
+            p.inq_cnt AS inqCnt,
+            p.rgtr_id AS regId,
+            u.usr_nm AS regNm,
+            TO_CHAR(p.reg_dt, 'YYYY-MM-DD') AS regDt
+        FROM cdm_own.cmpt_bbs_pst p
+        LEFT JOIN cdm_own.usr u ON p.rgtr_id = u.usr_id
+        WHERE p.bbs_id = COALESCE(#{bbsId}, 'NOTICE')
+        <if test="ttl != null and ttl != ''">
+            AND p.ttl LIKE '%' || #{ttl} || '%'
+        </if>
+        <if test="viewUseYn != null and viewUseYn != ''">
+            AND p.view_use_yn = #{viewUseYn}
+        </if>
+        <!-- 게시기간 검색: 시작일 조건 -->
+        <if test="bbsStYmd != null and bbsStYmd != ''">
+            AND p.bbs_st_ymd  <![CDATA[>=]]> #{bbsStYmd}
+        </if>
+        <!-- 게시기간 검색: 종료일 조건 -->
+        <if test="bbsEdYmd != null and bbsEdYmd != ''">
+            AND p.bbs_ed_ymd <![CDATA[<=]]> #{bbsEdYmd}
+        </if>
+        ORDER BY 
+            CASE WHEN p.top_std_yn = 'Y' THEN 0 ELSE 1 END,  -- 상단고정 공지사항 우선
+            p.reg_dt DESC                                     -- 등록일 최신순
+    </select>
+
+    <!-- 공지사항 상세조회 -->
+    <select id="selectNoticeDetail" parameterType="string" resultType="buttle.apptpl.api.shared.vo.BO301SNoticeDetailResVo">
+        /* NoticeMapper.selectNoticeDetail - 공지사항 상세조회 */
+        SELECT 
+            p.pst_id AS pstId,
+            p.bbs_id AS bbsId,
+            p.ttl AS ttl,
+            p.pst_cn AS pstCn,
+            COALESCE(p.ntc_yn,'N') AS ntcYn,
+            COALESCE(p.top_std_yn,'N') AS topStdYn, 
+            COALESCE(p.view_use_yn,'N') AS viewUseYn,
+            p.bbs_st_ymd AS bbsStYmd,
+            p.bbs_st_tm AS bbsStTm,
+            p.bbs_ed_ymd AS bbsEdYmd,
+            p.bbs_ed_tm AS bbsEdTm,
+            to_CHAR(p.bbs_st_ymd::DATE,'YYYY-MM-DD')|| ' '|| TO_CHAR(TO_TIMESTAMP(p.bbs_st_tm, 'HH24MISS'), 'HH24:MI') AS bbsStDt,
+            to_CHAR(p.bbs_ed_ymd::DATE,'YYYY-MM-DD')|| ' '|| TO_CHAR(TO_TIMESTAMP(p.bbs_ed_tm, 'HH24MISS'), 'HH24:MI') AS bbsEdDt,
+            p.atch_file_group_id AS atchFileGroupId,
+            p.inq_cnt AS inqCnt,
+            p.rgtr_id AS regId,
+            u.usr_nm AS regNm,
+            TO_CHAR(p.reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS regDt
+        FROM cdm_own.cmpt_bbs_pst p
+        LEFT JOIN cdm_own.usr u ON p.rgtr_id = u.usr_id
+        WHERE p.bbs_id = 'NOTICE'
+        AND p.pst_id = #{pstId}
+    </select>
+
+    <!-- 공지사항 존재 여부 확인 -->
+    <select id="selectNoticeExists" parameterType="string" resultType="int">
+        /* NoticeMapper.selectNoticeExists - 공지사항 존재 여부 확인 */
+        SELECT COUNT(*)
+        FROM cdm_own.cmpt_bbs_pst
+        WHERE bbs_id = 'NOTICE'
+        AND pst_id = #{pstId}
+    </select>
+
+    <!-- 공지사항 등록 -->
+    <insert id="insertNotice" parameterType="buttle.apptpl.api.shared.vo.BO301SNoticeSaveReqVo">
+        /* NoticeMapper.insertNotice - 공지사항 등록 */
+        INSERT INTO cdm_own.cmpt_bbs_pst (
+            pst_id,
+            bbs_id,
+            ttl,
+            pst_cn,
+            top_std_yn,
+            use_yn,
+            view_use_yn,
+            bbs_st_ymd,
+            bbs_st_tm,
+            bbs_ed_ymd,
+            bbs_ed_tm,
+            atch_file_group_id,
+            inq_cnt,
+            rgtr_id,
+            reg_dt
+        ) VALUES (
+            #{pstId},
+            #{bbsId},
+            #{ttl},
+            #{pstCn},
+            COALESCE(#{topStdYn}, 'N'),
+            <!--
+                use_yn 을 넣지 않고 있었다. 컬럼 기본값도 없어 <이 화면에서 등록한 공지는
+                전부 use_yn = NULL> 이 됐고(현행 dev: NOTICE 24건 중 Y 는 최초 이관분 4건뿐),
+                desk 의 공지 알림 목록(NotificationMapper.selectNotice)과 관리콘솔 미확인
+                건수는 둘 다 `pst.use_yn = 'Y'` 를 요구한다 — 즉 등록해도 아무 데도 안 뜬다.
+                노출 제어는 view_use_yn(화면의 '노출여부')이 하므로 여기서는 항상 'Y' 다.
+            -->
+            'Y',
+            COALESCE(#{viewUseYn}, 'N'),
+            #{bbsStYmd},
+            COALESCE(#{bbsStTm}, '000000'),
+            #{bbsEdYmd},
+            COALESCE(#{bbsEdTm}, '235959'),
+            #{atchFileGroupId},
+            0,
+            #{gdsUserId},
+            NOW()
+        )
+    </insert>
+
+    <!-- 공지사항 수정 -->
+    <update id="updateNotice" parameterType="buttle.apptpl.api.shared.vo.BO301SNoticeSaveReqVo">
+        /* NoticeMapper.updateNotice - 공지사항 수정 */
+        UPDATE cdm_own.cmpt_bbs_pst
+        SET ttl = #{ttl},
+            pst_cn = #{pstCn},
+            view_use_yn = COALESCE(#{viewUseYn}, 'N'),
+            top_std_yn = COALESCE(#{topStdYn}, 'N'),
+            bbs_st_ymd = #{bbsStYmd},
+            bbs_st_tm = COALESCE(#{bbsStTm}, '000000'),
+            bbs_ed_ymd = #{bbsEdYmd},
+            bbs_ed_tm = COALESCE(#{bbsEdTm}, '235959'),
+            atch_file_group_id = #{atchFileGroupId},
+            mdfr_id = #{gdsUserId},
+            mdfcn_dt = NOW()
+        WHERE bbs_id = 'NOTICE'
+        AND pst_id = #{pstId}
+    </update>
+
+    <!-- 공지사항 삭제 -->
+    <delete id="deleteNotice" parameterType="string">
+        /* NoticeMapper.deleteNotice - 공지사항 삭제 */
+        DELETE FROM cdm_own.cmpt_bbs_pst
+        WHERE bbs_id = 'NOTICE'
+        AND pst_id = #{pstId}
+    </delete>
+
+    <!-- 공지사항 조회수 증가 -->
+    <update id="updateInquiryCount" parameterType="string">
+        /* NoticeMapper.updateInquiryCount - 공지사항 조회수 증가 */
+        UPDATE cdm_own.cmpt_bbs_pst
+        SET inq_cnt = COALESCE(inq_cnt, 0) + 1
+        WHERE bbs_id = 'NOTICE'
+        AND pst_id = #{pstId}
+    </update>
+
+</mapper>

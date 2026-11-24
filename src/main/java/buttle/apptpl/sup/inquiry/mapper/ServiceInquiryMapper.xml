@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.sup.inquiry.mapper.ServiceInquiryMapper">
+
+    <!-- 서비스 문의 목록 조회 -->
+    <select id="selectInquiryList" parameterType="buttle.apptpl.api.shared.vo.InquirySearchReqVo" resultType="buttle.apptpl.api.shared.vo.InquiryListResVo">
+        SELECT
+            a.srvc_qstn_id AS qstn_id,
+            a.cmpy_id AS cmpy_id,
+            a.srvc_qstn_clsf_cd AS inquiry_type_cd,
+            (SELECT cmmn_cd_nm FROM cdm_own.cmmn_cd WHERE cd_grop_cd = 'SRVC_QSTN_CLSF_CD' AND cmmn_cd = a.srvc_qstn_clsf_cd AND lcal_cd = 'ko') AS inquiry_type_nm,
+            SUBSTRING(a.srvc_qstn_cn, 1, 100) AS inquiry_cn,
+            a.srvc_qstn_cn AS qstn_cn,
+            CASE WHEN a.atch_file_group_id IS NOT NULL AND a.atch_file_group_id != '' THEN TRUE ELSE FALSE END AS has_file,
+            a.atch_file_group_id AS atch_file_group_id,
+            c.cmpy_nm AS cmpy_nm,
+            a.rgtr_id AS mbr_id,
+            a.svc_qstn_nm AS inquirer_nm,
+            a.rgtr_id AS inquirer_id,
+            TO_CHAR(a.reg_dt, 'YYYY-MM-DD HH24:MI') AS rcpt_dt,
+            CASE WHEN a.srvc_ans_dt IS NOT NULL THEN '답변완료' ELSE '답변대기' END AS answer_yn,
+            TO_CHAR(a.srvc_ans_dt, 'YYYY-MM-DD HH24:MI') AS answer_dt,
+            a.srvc_ans_cn AS answer_cn,
+            a.svc_ans_nm AS answerer_nm
+        FROM cdm_own.cmpt_srvc_qstn a
+        LEFT JOIN cdm_own.cmpt_cmpy_inf c ON a.cmpy_id = c.cmpy_id
+        WHERE 1=1
+        <if test="fromDt != null and fromDt != ''">
+            AND a.reg_dt <![CDATA[>=]]> TO_TIMESTAMP(#{fromDt} || '000000', 'YYYYMMDDHH24MISS')
+        </if>
+        <if test="toDt != null and toDt != ''">
+            AND a.reg_dt <![CDATA[<=]]> TO_TIMESTAMP(#{toDt} || '235959', 'YYYYMMDDHH24MISS')
+        </if>
+        <if test="answerYn != null and answerYn == '대기'">
+            AND a.srvc_ans_dt IS NULL
+        </if>
+        <if test="answerYn != null and answerYn == '완료'">
+            AND a.srvc_ans_dt IS NOT NULL
+        </if>
+        <if test="inquiryTypeCd != null and inquiryTypeCd != '' and inquiryTypeCd != '전체'">
+            AND a.srvc_qstn_clsf_cd = #{inquiryTypeCd}
+        </if>
+        <if test="cmpyNm != null and cmpyNm != ''">
+            AND c.cmpy_nm LIKE '%' || #{cmpyNm} || '%'
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND a.srvc_qstn_cn LIKE '%' || #{keyword} || '%'
+        </if>
+        <if test="lastQstnId != null and lastQstnId != ''">
+            AND a.srvc_qstn_id <![CDATA[<]]> #{lastQstnId}
+        </if>
+        ORDER BY a.reg_dt DESC 
+    </select>
+
+    <!-- 서비스 문의 답변 저장 -->
+    <update id="updateInquiryAnswer" parameterType="buttle.apptpl.api.shared.vo.InquiryAnswerSaveReqVo">
+        UPDATE cdm_own.cmpt_srvc_qstn
+        SET
+            srvc_ans_cn = #{answerCn},
+            srvc_ans_dt = CURRENT_TIMESTAMP,
+            mdfr_id = #{mdfrId},
+            mdfcn_dt = CURRENT_TIMESTAMP,
+            svc_ans_nm = #{answerNm}
+        WHERE srvc_qstn_id = #{qstnId}
+    </update>
+    
+    <!-- 서비스 문의 등록 (상담사 콘솔 → admin 서버 간 호출) -->
+    <insert id="insertInquiry" parameterType="buttle.apptpl.api.shared.vo.InquiryRegisterReqVo">
+        INSERT INTO cdm_own.cmpt_srvc_qstn (
+            cmpy_id,
+            srvc_qstn_id,
+            srvc_qstn_clsf_cd,
+            srvc_qstn_cn,
+            srvc_qstn_rcpt_yn,
+            view_use_yn,
+            atch_file_group_id,
+            svc_qstn_nm,
+            rgtr_id,
+            reg_dt,
+            mdfr_id,
+            mdfcn_dt
+        ) VALUES (
+            #{companyId},
+            #{srvcQstnId},
+            #{srvcQstnClsfCd},
+            #{srvcQstnCn},
+            'Y',
+            'Y',
+            #{atchFileGroupId},
+            #{svcQstnNm},
+            #{rgtrId},
+            CURRENT_TIMESTAMP,
+            #{mdfrId},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!--
+        내 서비스 문의 목록 조회 (등록자 본인 것만)
+        - rn 은 LIMIT/OFFSET 적용 전 전체 집합 기준으로 계산된다.
+        - fileNames 는 첨부 그룹이 admin 스키마에 있을 때만 채워진다.
+          상담사 콘솔이 올린 파일은 desk 스키마에 저장되므로 통상 null 이고,
+          화면은 desk 의 첨부 조회 API 를 우선 사용한다.
+    -->
+    <select id="selectMyInquiryList" parameterType="buttle.apptpl.api.shared.vo.MyInquirySearchReqVo" resultType="buttle.apptpl.api.shared.vo.MyInquiryListResVo">
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY a.reg_dt DESC) AS rn,
+            a.cmpy_id,
+            a.srvc_qstn_id,
+            a.srvc_qstn_clsf_cd,
+            (SELECT s.cmmn_cd_nm FROM cdm_own.cmmn_cd s WHERE s.cd_grop_cd = 'SRVC_QSTN_CLSF_CD' AND s.cmmn_cd = a.srvc_qstn_clsf_cd AND s.lcal_cd = 'ko') AS srvc_qstn_clsf_nm,
+            a.srvc_qstn_cn,
+            a.srvc_ans_cn,
+            TO_CHAR(a.srvc_ans_dt, 'YYYY-MM-DD HH24:MI:SS') AS srvc_ans_dt,
+            a.srvc_bigo AS srvc_rmrk,
+            a.srvc_qstn_rcpt_yn,
+            a.rgtr_id,
+            TO_CHAR(a.reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS reg_dt,
+            a.svc_qstn_nm,
+            a.svc_ans_nm,
+            CASE WHEN a.atch_file_group_id IS NOT NULL AND a.atch_file_group_id != '' THEN 'Y' ELSE 'N' END AS file_yn,
+            a.atch_file_group_id,
+            CASE WHEN a.srvc_ans_dt IS NOT NULL THEN 'Y' ELSE 'N' END AS answer_yn,
+            (SELECT STRING_AGG(f.file_nm, ' / ' ORDER BY f.reg_dt)
+               FROM cdm_own.cmpt_atch_file f
+              WHERE f.atch_file_group_id = a.atch_file_group_id
+                AND COALESCE(f.del_yn, 'N') != 'Y') AS file_names
+        FROM cdm_own.cmpt_srvc_qstn a
+        WHERE a.cmpy_id = #{companyId}
+          AND a.rgtr_id = #{loginId}
+        <!-- OGNL 에서 'Y' 는 char 리터럴이라 String 비교가 깨진다. 반드시 큰따옴표를 쓴다. -->
+        <if test='answerYn != null and answerYn == "Y"'>
+          AND a.srvc_ans_dt IS NOT NULL
+        </if>
+        <if test='answerYn != null and answerYn == "N"'>
+          AND a.srvc_ans_dt IS NULL
+        </if>
+        ORDER BY a.reg_dt DESC
+    </select>
+
+    <!-- 문의 유형 목록 조회 -->
+    <select id="selectInquiryTypeList" resultType="buttle.apptpl.api.shared.vo.InquiryTypeResVo">
+        /* buttle.apptpl.sup.inquiry.mapper.ServiceInquiryMapper.selectInquiryTypeList */
+        SELECT
+            cmmn_cd AS cd,
+            cmmn_cd_nm AS cdNm
+        FROM cdm_own.cmmn_cd
+        WHERE cd_grop_cd = 'SRVC_QSTN_CLSF_CD'
+          AND lcal_cd = 'ko'
+          AND use_yn = 'Y'
+        ORDER BY sort_seq, cmmn_cd
+    </select>
+
+</mapper>

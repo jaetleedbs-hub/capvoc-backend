@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="buttle.apptpl.cmm.user.mapper.UserMapper">
+
+    <!-- 사용자관리 목록 정보 조회 -->
+    <select id="selectUserInfoList" parameterType="buttle.apptpl.cmm.user.vo.SYS0030001Vo" 
+            resultType="buttle.apptpl.cmm.user.vo.SYS0030001Vo">
+                SELECT
+                    a.usr_id AS user_id, /* 사용자 ID */
+                    a.usr_nm AS user_nm, /* 사용자 명 */
+                    a.ognz_cd,      /* 조직 코드 */
+                    b.ognz_nm,      /* 소속부서명 */
+                    a.auth_cd AS authrt_cd, /* 권한 코드 */
+                    d.auth_nm AS authrt_nm, /* 권한 코드 - 사용자 등급 */
+                    a.lgn_yn,       /* 로그인 여부 */
+                    a.lgn_ip,       /* 로그인 IP */
+                    c.cd_nm AS wrk_stat_nm, /* 근태 코드 */
+                    TO_CHAR(a.entr_dt, 'YYYYMMDD') AS jncmp_ymd, /* 입사 일자 */
+                    TO_CHAR(a.rtir_dt, 'YYYYMMDD') AS rsgntn_ymd /* 퇴사 일자 */
+                FROM cdm_own.usr a /* 사용자 */
+                LEFT JOIN cdm_own.ognz b /* 조직 */ ON a.ognz_cd = b.ognz_cd
+                LEFT JOIN cdm_own.sup_wrk_stat s /* 근태상태 */ ON s.user_id = a.usr_id AND a.ognz_cd = s.ognz_cd AND s.crtr_ymd = TO_CHAR(CURRENT_DATE, 'YYYYMMDD')
+                LEFT JOIN cdm_own.cmmn_cd c /* 공통코드 */ ON c.cd_grop_cd = 'WRK_STAT_CD' AND c.cmmn_cd = s.wrk_stat_cd AND c.lcal_cd = 'ko'
+                LEFT JOIN cdm_own.auth d /* 권한 */ ON a.auth_cd = d.auth_cd
+                WHERE 1=1
+                <if test="userId != null and userId != ''">
+                    AND a.usr_id LIKE '%' || #{userId} || '%'
+                </if>
+                <if test="userNm != null and userNm != ''">
+                    AND a.usr_nm LIKE '%' || #{userNm} || '%'
+                </if>
+                <if test="ognzCd != null and ognzCd != ''">
+                    AND a.ognz_cd in (<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.ognzCd" />)
+                </if>
+                <if test="authrtCd != null and authrtCd != ''">
+                    AND a.auth_cd = #{authrtCd}
+                </if>
+                <if test="ctiUseYn != null and ctiUseYn != ''">
+                    AND a.cti_use_yn = #{ctiUseYn}
+                </if>
+                <if test="useYn != null and useYn != ''">
+                    AND a.use_yn = #{useYn}
+                </if>
+                ORDER BY a.usr_id
+    </select>
+
+    <!-- 사용자관리 상세 정보 조회 -->
+    <select id="selectUserDtlInfo" parameterType="buttle.apptpl.cmm.user.vo.SYS0030002Vo" 
+            resultType="buttle.apptpl.cmm.user.vo.SYS0030002Vo">
+        SELECT
+            a.usr_id AS user_id, /* 사용자 ID */
+            a.usr_nm AS user_nm, /* 사용자 명 */
+            a.auth_cd AS authrt_cd, /* 권한 코드 */
+            d.auth_nm AS authrt_nm, /* 권한 코드 - 사용자 등급 */
+            e.cd AS user_type_cd, /* 사용자 유형 코드 */
+            e.cd_nm AS user_type_nm, /* 사용자 유형 */
+            a.ognz_cd, /* 소속부서코드 */
+            b.ognz_nm, /* 소속부서명 */
+            TO_CHAR(a.entr_dt, 'YYYYMMDD') AS jncmp_ymd, /* 입사 일자 */
+            TO_CHAR(a.rtir_dt, 'YYYYMMDD') AS rsgntn_ymd, /* 퇴사 일자 */
+            a.home_tel_no, /* 자택 전화 번호 */
+            a.mbl_tel_no, /* 휴대 전화 번호 */
+            a.eml_addr, /* 이메일 주소 */
+            a.usr_phto AS user_photo, /* 사용자 사진 */
+            a.use_yn, /* 사용 여부 */
+            a.lgn_yn, /* 로그인 여부 */
+            a.lgn_ip, /* 로그인 IP */
+            a.lgn_try_rcn AS lgn_try_cnt, /* 로그인 시도 횟수 */
+            TO_CHAR(a.pswd_chg_dttm, 'YYYYMMDDHH24MISS') AS pswd_chg_dt, /* 비밀번호 변경 일시 */
+            a.cti_use_yn, /* CTI 사용여부 */
+            a.cti_auto_lgn_yn, /* CTI 자동 로그인 여부 */
+            a.cti_agnt_id AS cti_id, /* CTI ID */
+            a.emp_no, /* 사원번호 */
+            a.ext_no, /* 내선 번호 */
+            a.work_hm AS work_tm, /* 출근 시간 */
+            a.cnsl_task_dvcd AS dscsn_task_se_cd, /* 업무구분 */
+            a.clbk_task_use_yn AS callbak_task_use_yn /* 콜백 업무 사용 여부 */
+        FROM cdm_own.usr a /* 사용자 */
+        LEFT JOIN cdm_own.ognz b /* 조직 */ ON a.ognz_cd = b.ognz_cd
+        LEFT JOIN cdm_own.auth d /* 권한 */ ON a.auth_cd = d.auth_cd
+        LEFT JOIN cdm_own.cmmn_cd e /* 사용자 유형 */ ON e.cd_grop_cd = 'USER_TYPE_CD' AND e.cmmn_cd = a.usr_tpcd AND e.lcal_cd = 'ko'
+        WHERE a.usr_id = #{userId}
+    </select>
+
+
+</mapper> 

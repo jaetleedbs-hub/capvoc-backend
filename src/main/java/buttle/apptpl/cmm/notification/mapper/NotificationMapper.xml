@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.cmm.notification.mapper.NotificationMapper">
+
+    <!-- 시스템 공지사항 데이터 목록 조회 -->
+    <select id="selectNotice" parameterType="buttle.apptpl.cmm.notification.dto.NotificationsRequestDto" resultType="buttle.apptpl.cmm.notification.dto.NoticeDto">
+
+			select pst.bbs_id
+			     , pst.pst_id
+			     , pst.ttl
+           , pst.bbs_st_ymd || pst.bbs_st_tm as rgt_dt
+           ,(case when sts.mbr_id is null then 'N' else 'Y' end) as is_read
+           ,(case when sts.view_use_yn = 'N' then 'N' else 'Y' end) as is_view
+           ,(case when sts.view_use_yn = 'N' then 'N' else 'Y' end) as view_use_yn
+			  from cdm_own.cmpt_bbs_pst pst
+		inner join cdm_own.cmpt_bbs bbs
+		        on bbs.bbs_id = pst.bbs_id
+   left outer join cdm_own.cmpt_bbs_read_sts sts 
+			    on sts.bbs_id = pst.bbs_id
+			   and sts.pst_id = pst.pst_id
+			   and sts.mbr_id = #{mbrId}
+		     where bbs.use_yn = 'Y'
+           <!-- [2026-08-20] 부호가 뒤집혀 있었다. `now() + 60일` 은 <종료일이 60일 뒤보다 먼>
+                공지만 남긴다 — 지금 게시 중이어도 60일 안에 끝나면 빠졌다. 같은 파일의
+                selectServiceAnswer·selectUmsSedngInfo 는 같은 오타로 <항상 0건>이었다.
+                의도는 "최근 60일 이내" 다. -->
+           and pst.bbs_ed_ymd || pst.bbs_ed_tm &gt;= to_char(now() - interval '60 days', 'YYYYMMDDHH24MISS')
+		       and bbs.bbs_id = 'NOTICE'
+           and TO_CHAR(NOW(), 'YYYYMMDDHH24MISS') between coalesce(pst.bbs_st_ymd,'19000101') || coalesce(bbs_st_tm, '000000') and coalesce(pst.bbs_ed_ymd,'21991231') || coalesce(bbs_ed_tm, '000000')
+		       and pst.view_use_yn = 'Y'
+		       and pst.use_yn = 'Y'
+        <!-- 미확인만 조회 -->
+        <if test='unreadOnly != null and unreadOnly == "Y"'>
+             and sts.mbr_id is null
+        </if>
+        <!-- 화면 표시 대상 만 조회 -->
+        <if test='viewUseYn != null and viewUseYn == "Y"'>
+             and (sts.view_use_yn = 'Y' or sts.view_use_yn is null)
+        </if>
+        order by pst.bbs_st_ymd || pst.bbs_st_tm desc
+
+    </select>
+
+
+    <select id="selectExistsNoticeReadStatus" parameterType="buttle.apptpl.cmm.notification.dto.NoticeDto" resultType="Integer">
+        SELECT 1 as entry_count
+          FROM cdm_own.cmpt_bbs_read_sts
+         WHERE bbs_id = #{bbsId}
+           AND pst_id = #{pstId}
+           AND mbr_id = #{mbrId}
+    </select>
+
+    
+
+
+    <!-- 공지사항 읽음 상태 등록/갱신 -->
+    <!-- 첫 읽음: first_read_dt, last_read_dt, read_cnt=1 저장 -->
+    <!-- 재읽음: last_read_dt 갱신, read_cnt 증가 -->
+    <insert id="insertNoticeReadStatus" parameterType="buttle.apptpl.cmm.notification.dto.NoticeDto">
+        INSERT INTO cdm_own.cmpt_bbs_read_sts (bbs_id, pst_id, mbr_id, first_read_dt, last_read_dt, read_cnt, view_use_yn)
+             VALUES (#{bbsId}, #{pstId}, #{mbrId}, NOW(), NOW(), 1, 'Y')<!-- 화면 표시 여부 -->
+                 ON CONFLICT (bbs_id, pst_id, mbr_id) 
+      DO UPDATE SET 
+            last_read_dt = NOW(),
+            read_cnt = cmpt_bbs_read_sts.read_cnt + 1
+    </insert>
+
+    <!-- 공지사항 읽음 상태 갱신 -->
+    <update id="updateNoticeReadStatus" parameterType="buttle.apptpl.cmm.notification.dto.NoticeDto">
+        UPDATE cdm_own.cmpt_bbs_read_sts
+           SET last_read_dt = NOW(),
+               read_cnt = read_cnt + 1
+         WHERE bbs_id = #{bbsId}
+           AND pst_id = #{pstId}
+           AND mbr_id = #{mbrId}
+    </update>
+    
+    <!-- 게시물 삭제에 딸린 읽음 상태 정리 (FK 가 없어 앱이 지운다) -->
+    <delete id="deleteNoticeReadStatusByPost" parameterType="string">
+        DELETE FROM cdm_own.cmpt_bbs_read_sts
+         WHERE pst_id = #{pstId}
+    </delete>
+
+    <!-- 공지사항 화면 표시 상태 갱신 -->
+    <update id="updateNoticeViewStatus" parameterType="buttle.apptpl.cmm.notification.dto.NoticeDto">
+        UPDATE cdm_own.cmpt_bbs_read_sts
+           SET view_use_yn = #{viewUseYn} <!-- 화면 표시 여부 -->
+         WHERE bbs_id = #{bbsId}
+           AND pst_id = #{pstId}
+           AND mbr_id = #{mbrId}
+    </update>
+
+
+
+
+    <!-- 문의 미확인 조회 -->
+    <select id="selectServiceAnswer" parameterType="buttle.apptpl.cmm.notification.dto.NotificationsRequestDto" resultType="buttle.apptpl.cmm.notification.dto.ServiceAnswerDto">
+        select cmpy_id
+              ,srvc_qstn_id
+              ,srvc_qstn_cn
+              ,srvc_ans_cn
+              ,TO_CHAR(srvc_ans_dt, 'YYYYMMDDHH24MISS') as srvc_ans_rgt_dt
+              ,(case when csq.rgtr_ans_read_dt is null then 'N' else 'Y' end) as is_read
+              ,(case when csq.view_use_yn = 'N' then 'N' else 'Y' end) as is_view
+              ,(case when csq.view_use_yn = 'N' then 'N' else 'Y' end) as view_use_yn
+          from cdm_own.cmpt_srvc_qstn csq
+         where csq.cmpy_id = #{cmpyId}
+           and csq.rgtr_id = #{mbrId}
+        <!-- 답변이 있고 -->
+          and csq.srvc_ans_dt is not null
+          and csq.srvc_qstn_rcpt_yn = 'Y'
+          <!-- [2026-08-20] `+` 였다. 답변일시가 <미래>여야 참이라 이 조회는 구조적으로
+               항상 0건이었다 — desk 의 "서비스 답변" 알림이 뜬 적이 없다. -->
+          and csq.srvc_ans_dt &gt;= (now() - interval '60 days')
+          
+        <!-- 답변 읽지 않은 경우 -->
+        <if test='unreadOnly != null and unreadOnly == "Y"'>
+          and csq.rgtr_ans_read_dt is null
+        </if>
+        <!-- 화면 표시 여부 -->
+        <if test='viewUseYn != null and viewUseYn == "Y"'>
+          and (csq.view_use_yn = 'Y' or csq.view_use_yn is null)
+        </if>
+     order by csq.srvc_ans_dt desc
+    </select>
+
+
+    <!-- 서비스 답변 읽음 상태 업데이트 -->
+    <update id="updateServiceAnswerReadStatus" parameterType="buttle.apptpl.cmm.notification.dto.ServiceAnswerDto">
+       UPDATE cdm_own.cmpt_srvc_qstn
+          SET rgtr_ans_read_dt = NOW()
+             ,mdfr_id = #{mbrId}
+             ,mdfcn_dt = NOW()
+        WHERE srvc_qstn_id = #{srvcQstnId}
+          AND cmpy_id = #{cmpyId}
+    </update>
+
+    <!-- 서비스 답변 읽음 상태 업데이트 -->
+    <update id="updateServiceAnswerViewStatus" parameterType="buttle.apptpl.cmm.notification.dto.ServiceAnswerDto">
+       UPDATE cdm_own.cmpt_srvc_qstn
+          SET view_use_yn = #{viewUseYn}
+             ,mdfr_id = #{mbrId}
+             ,mdfcn_dt = NOW()
+        WHERE srvc_qstn_id = #{srvcQstnId}
+          AND cmpy_id = #{cmpyId}
+    </update>
+
+
+
+
+
+
+
+
+
+    <!-- 어드민 알림 제목/내용 정보 조회 -->
+    <select id="selectUmsSedngInfo" parameterType="buttle.apptpl.cmm.notification.dto.NotificationsRequestDto" resultType="buttle.apptpl.cmm.notification.dto.UmsSedngInfo">
+          select sndng.ums_id
+                ,sndng.ums_ttl
+                ,sndng.ums_cn
+                ,sndng.send_ymd || sndng.send_tm as send_dt
+                ,rcvr.send_rslt_cd
+                ,rcvr.ums_sn
+                ,rcvr.cmpy_id
+                ,(case when rcvr.send_rslt_cd = '0000' then 'N' else 'Y' end) as is_read
+                ,(case when rcvr.send_rslt_cd = '9998' then 'N' else 'Y' end) as is_view
+                ,(case when rcvr.send_rslt_cd = '9998' then 'N' else 'Y' end) as view_use_yn
+            from cdm_own.cmpt_ums_sedng_info sndng
+      inner join cdm_own.cmpt_ums_rcvr rcvr
+              on sndng.ums_id = rcvr.ums_id
+           where rcvr.mbr_id = #{mbrId}
+             <!-- [2026-08-20] `+` 였다. 발송일시가 <미래>여야 참이라 항상 0건이었다 —
+                  desk 의 "어드민 메시지" 알림이 뜬 적이 없다. -->
+             and sndng.send_ymd || sndng.send_tm &gt;= to_char(now() - interval '60 days', 'YYYYMMDDHH24MISS')
+        <if test='unreadOnly != null and unreadOnly == "Y"'>
+             and rcvr.send_rslt_cd = '0000'
+        </if>
+        <!-- 화면 표시 여부 -->
+        <if test='viewUseYn != null and viewUseYn == "Y"'>
+          and rcvr.send_rslt_cd != '9998'
+        </if>
+    </select>
+
+    <!-- UMS 읽음 상태 업데이트 -->
+    <update id="updateUmsReadStatus" parameterType="buttle.apptpl.cmm.notification.dto.UmsSedngInfo">
+        UPDATE cdm_own.cmpt_ums_rcvr
+        SET send_rslt_cd = #{sendRsltCd}<!-- '9999' -->
+        WHERE ums_id = #{umsId}
+          and ums_sn = #{umsSn}
+          and cmpy_id = #{cmpyId}
+          and mbr_id = #{mbrId}
+    </update>
+
+
+
+</mapper>

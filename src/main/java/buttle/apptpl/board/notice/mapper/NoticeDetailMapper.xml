@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.board.notice.mapper.NoticeDetailMapper">
+
+    <!-- 공지사항 상세조회 -->
+    <select id="selectNoticeDetail" parameterType="buttle.apptpl.api.shared.vo.BO301P1NoticeDetailReqVo" resultType="buttle.apptpl.api.shared.vo.BO301P1NoticeDetailResVo">
+        SELECT 
+            pst_id AS pstId,
+            bbs_id AS bbsId,
+            ttl AS ttl,
+            pst_cn AS pstCn,
+            ntc_yn AS ntcYn,
+            view_use_yn AS viewUseYn,
+            atch_file_group_id AS atchFileGroupId,
+            inq_cnt AS inqCnt,
+            TO_CHAR(reg_dt, 'YYYY-MM-DD HH24:MI:SS') AS regDt,
+            rgtr_id AS rgtrId
+        FROM cdm_own.cmpt_bbs_pst
+        WHERE bbs_id = 'NOTICE'
+        AND pst_id = #{pstId}
+    </select>
+
+    <!-- 조회수 증가 -->
+    <update id="updateInqCnt" parameterType="string">
+        UPDATE cdm_own.cmpt_bbs_pst
+        SET inq_cnt = COALESCE(inq_cnt, 0) + 1
+        WHERE bbs_id = 'NOTICE'
+        AND pst_id = #{pstId}
+    </update>
+
+</mapper>

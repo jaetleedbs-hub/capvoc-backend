@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="buttle.apptpl.log.userlogin.mapper.UserLoginHistoryMapper">
+
+    <select id="selectDailyUserLoginHistList" parameterType="buttle.apptpl.log.userlogin.vo.SYS6010001Vo" resultType="buttle.apptpl.log.userlogin.vo.SYS6010002Vo">
+        SELECT
+            a.user_id,          /* 사용자 ID */
+            b.usr_nm AS user_nm, /* 사용자명 */
+            c.ognz_nm,          /* 조직명 */
+            a.lgn_ymd,          /* 로그인 일자 */
+            a.lgn_ip,           /* 로그인 IP */
+            TO_CHAR(a.lgn_dt, 'YYYY-MM-DD HH24:MI:SS') as lgn_dt,   /* 로그인 일시 (문자열 변환) */
+            TO_CHAR(a.lgt_dt, 'YYYY-MM-DD HH24:MI:SS') as lgt_dt,   /* 로그아웃 일시 (문자열 변환) */
+            a.lgn_cnt        /* 로그인 횟수 */
+        FROM cdm_own.cmpt_user_lgn_hstry a /* 사용자 로그인 이력 */
+        INNER JOIN cdm_own.usr b /* 사용자 정보 */ ON a.user_id = b.usr_id
+        INNER JOIN cdm_own.ognz c /* 조직 정보 */ ON b.ognz_cd = c.ognz_cd
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND a.lgn_ymd &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND a.lgn_ymd &lt;= #{endDate}
+        </if>
+        <if test="ognzCd != null and ognzCd != ''">
+            AND c.ognz_cd in (<include refid="buttle.apptpl.api.common.components.mapper.AuthOgnzUserMapper.ognzCd" />)
+        </if>
+        <if test="userId != null and userId != ''">
+            AND a.user_id = #{userId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (b.usr_nm LIKE '%' || #{keyword} || '%' OR a.user_id LIKE '%' || #{keyword} || '%')
+        </if>
+        ORDER BY a.lgn_ymd DESC, a.user_id
+    </select>
+
+</mapper> 
