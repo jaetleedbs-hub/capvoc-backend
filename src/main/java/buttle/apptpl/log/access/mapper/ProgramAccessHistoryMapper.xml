@@ -7,12 +7,12 @@
     <select id="selectPgmConnHistList" parameterType="buttle.apptpl.log.access.vo.SYS6040001Vo" resultType="buttle.apptpl.log.access.vo.SYS6040002Vo">
         <!-- [N-18 되돌림] cdm_own.conn_log를 조회한다.
              admin 신원은 usr_id 다(회원 mbr_id/lgn_id 아님). 화면 호환을 위해
-             log_id→log_sid 별칭만 유지. (구 N-18 로그는 chatcall_std 에 보존되며 향후 통합 배치가 흡수)
+             log_srno→log_sid 별칭만 유지. (구 N-18 로그는 chatcall_std 에 보존되며 향후 통합 배치가 흡수)
 
              [PII-4, 2026-08-31] 이름은 로그에 저장하지 않는다. 표시용 이름은 사용자 원장
              (usr)을 조인해 얻는다 — usr_id 가 단일 PK 라 행이 늘지 않는다. -->
         SELECT
-            a.log_id AS log_sid,      /* 로그 ID (구 log_sid 자리) */
+            a.log_srno AS log_sid,    /* 로그 일련번호 (구 log_sid 자리) */
             TO_CHAR(a.log_dttm, 'YYYY-MM-DD HH24:MI:SS') AS log_dt,     /* 로그 일시 */
             u.usr_nm AS user_nm, /* 사용자 이름 — 원장에서 조인 */
             a.http_mthd_nm AS http_method, /* http 메소드 */

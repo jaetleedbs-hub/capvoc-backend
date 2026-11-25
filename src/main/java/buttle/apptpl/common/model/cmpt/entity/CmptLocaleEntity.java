@@ -20,7 +20,7 @@ import buttle.apptpl.common.data.BaseAuditingEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_locale")
+@Table(name = "cmpt_locale", schema = "cdm_own")
 @Data
 public class CmptLocaleEntity extends BaseAuditingEntity implements Serializable {
 

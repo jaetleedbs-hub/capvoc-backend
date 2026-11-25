@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_atch_file")
+@Table(name = "cmpt_atch_file", schema = "cdm_own")
 public class CommonAtchFileEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

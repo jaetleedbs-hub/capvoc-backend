@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_bbs_pst")
+@Table(name = "cmpt_bbs_pst", schema = "cdm_own")
 public class CmptBbsPstEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

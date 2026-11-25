@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
  * 기록한다(독립 스키마). 구조는 표준과 동일(부모키 = 접속로그의 {@code log_id} 문자열, mbr 신원 없음).
  */
 @Entity
-@Table(name = "log_personal_access_log")
+@Table(name = "log_personal_access_log", schema = "cdm_own")
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Builder

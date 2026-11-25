@@ -25,7 +25,7 @@ import buttle.apptpl.common.data.BaseAuditingEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "sup_bokmk_menu")
+@Table(name = "sup_bokmk_menu", schema = "cdm_own")
 public class SupBokmkMenuEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

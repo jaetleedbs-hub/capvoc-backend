@@ -19,7 +19,7 @@ import buttle.apptpl.common.data.BaseAuditingEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_i18n")
+@Table(name = "cmpt_i18n", schema = "cdm_own")
 public class CmptI18nEntity extends BaseAuditingEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

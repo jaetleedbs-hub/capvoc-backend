@@ -27,7 +27,7 @@ import buttle.apptpl.common.data.BaseAuditingEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_authrt_hstry")
+@Table(name = "cmpt_authrt_hstry", schema = "cdm_own")
 public class CmptAuthrtHstryEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

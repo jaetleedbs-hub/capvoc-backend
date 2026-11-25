@@ -20,7 +20,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_cmpy_inf")
+@Table(name = "cmpt_cmpy_inf", schema = "cdm_own")
 public class CmptCmpyInfEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

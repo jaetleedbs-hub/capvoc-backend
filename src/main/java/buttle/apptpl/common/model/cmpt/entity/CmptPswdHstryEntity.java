@@ -16,7 +16,7 @@ import buttle.apptpl.common.data.BaseAuditingEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_pswd_hstry")
+@Table(name = "cmpt_pswd_hstry", schema = "cdm_own")
 public class CmptPswdHstryEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

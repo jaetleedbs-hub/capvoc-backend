@@ -20,7 +20,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_srvc_qstn_file")
+@Table(name = "cmpt_srvc_qstn_file", schema = "cdm_own")
 public class CmptSrvcQstnFileEntity extends BaseAuditingEntity implements Serializable {
 
     @Serial

@@ -19,7 +19,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_sale_day")
+@Table(name = "cmpt_sale_day", schema = "cdm_own")
 public class CmptSaleDayEntity extends BaseAuditingEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

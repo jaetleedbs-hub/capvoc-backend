@@ -11,7 +11,7 @@ import buttle.apptpl.common.data.BaseAuditingEntity;
 
 @Builder
 @Entity
-@Table(name = "cmpt_ip")
+@Table(name = "cmpt_ip", schema = "cdm_own")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

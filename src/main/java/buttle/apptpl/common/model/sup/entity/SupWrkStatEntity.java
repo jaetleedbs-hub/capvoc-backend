@@ -16,7 +16,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "sup_wrk_stat")
+@Table(name = "sup_wrk_stat", schema = "cdm_own")
 public class SupWrkStatEntity extends BaseAuditingEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

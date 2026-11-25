@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "cmpt_user_lgn_hstry")
+@Table(name = "cmpt_user_lgn_hstry", schema = "cdm_own")
 public class CmptUserLgnHstryEntity extends BaseAuditingEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
